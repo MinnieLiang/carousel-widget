@@ -8,14 +8,14 @@
     <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
     <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
 
-    <title>Carousel-widget by maxzhang</title>
+    <title>Carousel Widget by maxzhang</title>
   </head>
 
   <body>
 
     <header>
       <div class="container">
-        <h1>Carousel-widget</h1>
+        <h1>Carousel Widget</h1>
         <h2>Carousel Widget for Mobile</h2>
 
         <section id="downloads">
@@ -28,32 +28,59 @@
 
     <div class="container">
       <section id="main_content">
-        <h3>Welcome to GitHub Pages.</h3>
+        <h1>Carousel Widget</h1>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+<p>Carousel Widget for Mobile 是一个专为移动设备定制的 Carousel 组件，不依赖于任何第三方类库，其功能类似 <a href="http://twitter.github.io/bootstrap/javascript.html#carousel">Bootstrap 的 Carousel</a> 组件，但在此之上增加了 touch 功能，可以使用手指触碰移动设备屏幕，实现滑动切换效果。</p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
+<h2>DEMO</h2>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+<p>例子参见：<a href="http://maxzhang.github.io/carousel-widget/dev/examples/carousel.html">http://maxzhang.github.io/carousel-widget/dev/examples/carousel.html</a></p>
 
-<h3>Designer Templates</h3>
+<h2>API Documentation</h2>
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+<h3>Configs</h3>
 
-<h3>Rather Drive Stick?</h3>
+<p>String : targetSelector 目标元素选取器，items 默认为 targetSelector 的子元素，可以设置itemSelector，查找指定items子元素</p>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+<p>String : itemSelector 子元素选取器</p>
 
-<h3>Authors and Contributors</h3>
+<p>String : prevSelector 向前按钮选取器</p>
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+<p>String : nextSelector 向后按钮选取器</p>
 
-<h3>Support or Contact</h3>
+<p>String : indicatorSelector 指示器选取器</p>
 
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+<p>String : indicatorCls 当前activeIndex指示器样式</p>
+
+<p>Number/String : width 组件宽度，默认'auto'</p>
+
+<p>Number : activeIndex 初始显示的元素index，默认0</p>
+
+<p>Boolean : autoPlay true自动切换，默认true</p>
+
+<p>Number : interval 循环滚动间隔时间，单位毫秒，默认3000</p>
+
+<p>iScroll : iscroll 关联一个iScroll对象，Carousel Widget 为水平方向滚动，如果被嵌套在一个垂直滚动的 iScroll 组件中，会导致触摸滚动 Carousel的水平滚动 与 iScroll的垂直滚动相冲突。为了解决这个问题，在水平滑动时，禁用iScroll的垂直滚动，水平滑动结束之后，再启用iScroll。</p>
+
+<p>Function : beforeSlide 开始切换之前回调函数，返回值为false时，终止本次slide操作</p>
+
+<p>Function : onSlide 切换完成回调函数</p>
+
+<h3>Methods</h3>
+
+<p>prev() 向前滚动一个</p>
+
+<p>next() 向后滚动一个</p>
+
+<p>to( [Number]toIndex, [Boolean]silent) 滚动到指定index，silent为true时切换无动画效果</p>
+
+<p>setWidth( [Number]width ) 设置组件宽度</p>
+
+<p>start() 开始自动切换</p>
+
+<p>stop() 停止自动滚动</p>
+
+<p>destroy() 销毁组件</p>
       </section>
     </div>
 
