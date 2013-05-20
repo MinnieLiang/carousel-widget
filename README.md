@@ -3,13 +3,13 @@ Carousel Widget
 
 Carousel Widget for Mobile 是一个专为移动设备定制的 Carousel 组件，不依赖于任何第三方类库，其功能类似 [Bootstrap 的 Carousel](http://twitter.github.io/bootstrap/javascript.html#carousel) 组件，但在此之上增加了 touch 功能，可以使用手指触碰移动设备屏幕，实现滑动切换效果。
 
-### DEMO ###
+## DEMO
 
 例子参见：http://maxzhang.github.io/carousel-widget/dev/examples/carousel.html
 
-### API Documentation ###
+## API Documentation
 
-#### Configs ####
+### Configs
 
 String : targetSelector 目标元素选取器，items 默认为 targetSelector 的子元素，可以设置itemSelector，查找指定items子元素
 
@@ -37,7 +37,7 @@ Function : beforeSlide 开始切换之前回调函数，返回值为false时，�
 
 Function : onSlide 切换完成回调函数
 
-#### Methods ####
+### Methods
 
 prev() 向前滚动一个
 
