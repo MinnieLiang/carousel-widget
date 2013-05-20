@@ -126,6 +126,18 @@
     img {
         width: 320px;
     }
+
+    #myCarousel4 {
+        width: 320px;
+        position: relative;
+        margin-bottom: 20px;
+        overflow: hidden;
+        line-height: 1;
+    }
+
+    #myCarousel4 > div {
+        display: none;
+    }
 </style>
 </head>
 <body>
@@ -190,8 +202,8 @@
             </div>
         </div>
     </div>
-    <a class="left carousel-control" href="#myCarousel">‹</a>
-    <a class="right carousel-control" href="#myCarousel">›</a>
+    <a class="left carousel-control" href="#0">‹</a>
+    <a class="right carousel-control" href="#0">›</a>
 </div>
 
 <h1>3. Custom itemSelector</h1>
@@ -222,13 +234,13 @@
             </div>
         </div>
     </div>
-    <a class="left carousel-control" href="#myCarousel">‹</a>
-    <a class="right carousel-control" href="#myCarousel">›</a>
+    <a class="left carousel-control" href="#0">‹</a>
+    <a class="right carousel-control" href="#0">›</a>
 </div>
 
 <h1>4. Clear Carousel</h1>
 
-<div id="myCarousel4" class="carousel">
+<div id="myCarousel4">
     <div style="display: block;">
         <img src="bootstrap-mdo-sfmoma-01.jpg" alt="">
     </div>
@@ -259,7 +271,7 @@
 
     new Carousel({
         targetSelector: '#myCarousel3',
-        itemSelector: '#myCarousel3 .carousel-inner > div',
+        itemSelector: '.carousel-inner > div',
         prevSelector: '#myCarousel3 .left',
         nextSelector: '#myCarousel3 .right',
         indicatorSelector: '#myCarousel3 .carousel-indicators > li',

@@ -28,7 +28,7 @@
         }
 
         this.el = document.querySelector(this.targetSelector);
-        this.items = this.itemSelector ? document.querySelectorAll(this.itemSelector): this.el.children;
+        this.items = this.itemSelector ? this.el.querySelectorAll(this.itemSelector): this.el.children;
         this.items = Array.prototype.slice.call(this.items, 0);
 
         var width = this.width === 'auto' ? this.el.offsetWidth : this.width;
@@ -83,7 +83,7 @@
 
     Carousel.prototype = {
         /**
-         * @cfg {String} targetSelector 目标元素选取器
+         * @cfg {String} targetSelector 目标元素选取器，items 默认为 targetSelector 的子元素，可以设置itemSelector，查找指定items子元素
          */
 
         /**
@@ -103,7 +103,7 @@
          */
 
         /**
-         * @cfg {String} indicatorCls 当前指示器样式
+         * @cfg {String} indicatorCls 当前activeIndex指示器样式
          */
 
         /**
@@ -112,12 +112,12 @@
         width: 'auto',
 
         /**
-         * @cfg {Number} activeIndex 初始显示的元素，默认0
+         * @cfg {Number} activeIndex 初始显示的元素index，默认0
          */
         activeIndex: 0,
 
         /**
-         * @cfg {Boolean} autoPlay 自动切换
+         * @cfg {Boolean} autoPlay true自动切换，默认true
          */
         autoPlay: true,
 
@@ -128,12 +128,12 @@
 
         /**
          * @cfg {iScroll} iscroll 关联一个iscroll对象
-         * carousel为左右方向滚动，iScroll为上下方向滚动
-         * 如果carousel组件应用在一个iScroll中，为了防止两个组件滚动事件冲突，将两个对象关联起来
+         * Carousel Widget 为水平方向滚动，如果被嵌套在一个垂直滚动的 iScroll 组件中，会导致触摸滚动 Carousel的水平滚动 与 iScroll的垂直滚动相冲突，
+         * 为了解决这个问题，在水平滑动时，禁用iScroll的垂直滚动，水平滑动结束之后，再启用iScroll。
          */
 
         /**
-         * 开始切换之前回调函数
+         * 开始切换之前回调函数，返回值为false时，终止本次slide操作
          */
         beforeSlide: emtpyFn,
 
@@ -381,7 +381,9 @@
 
         // private
         onTouchStart: function(e) {
-            if (this.sliding) {
+            if (this.sliding ||
+                this.prevEl && this.prevEl.contains && this.prevEl.contains(e.target) ||
+                this.nextEl && this.nextEl.contains && this.nextEl.contains(e.target)) {
                 return;
             }
 
