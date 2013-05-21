@@ -29,7 +29,9 @@ Number : activeIndex 初始显示的元素index，默认0
 
 Boolean : autoPlay true自动切换，默认true
 
-Number : interval 循环滚动间隔时间，单位毫秒，默认3000
+Number : interval 循环滚动间隔时间，单位ms，默认3000
+
+Number : transitionDuration 动画持续时间，单位ms，默认400
 
 iScroll : iscroll 关联一个iScroll对象，Carousel Widget 为水平方向滚动，如果被嵌套在一个垂直滚动的 iScroll 组件中，会导致触摸滚动 Carousel的水平滚动 与 iScroll的垂直滚动相冲突。为了解决这个问题，在水平滑动时，禁用iScroll的垂直滚动，水平滑动结束之后，再启用iScroll。
 

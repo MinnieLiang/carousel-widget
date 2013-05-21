@@ -122,9 +122,14 @@
         autoPlay: true,
 
         /**
-         * @cfg {Number} interval 循环滚动间隔时间，单位毫秒，默认3000
+         * @cfg {Number} interval 循环滚动间隔时间，单位ms，默认3000
          */
         interval: 3000,
+
+        /**
+         * @cfg {Number} transitionDuration 动画持续时间，单位ms，默认400
+         */
+        transitionDuration: 400,
 
         /**
          * @cfg {iScroll} iscroll 关联一个iscroll对象
@@ -264,7 +269,7 @@
                 toEl = me.items[toIndex],
                 offsetLeft = activeEl.offsetLeft,
                 offsetWidth = activeEl.offsetWidth,
-                baseDuration = 600,
+                baseDuration = me.transitionDuration,
                 duration,
                 context,
                 activeSlideHandler,
