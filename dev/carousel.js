@@ -3,12 +3,12 @@
  *
  * 例子参见：http://maxzhang.github.io/carousel-widget/dev/examples/carousel.html
  *
- * @version 1.0
  */
 (function(root, factory) {
-    if (typeof define === "function" && (define.amd || define.cmd)) {
+    if (typeof define === "function" && (define.amd || seajs)) {
         define('carouselwidget', [], function() {
-            return factory(root);
+            factory(root);
+            return root.Carousel;
         });
     } else {
         factory(root);
@@ -34,16 +34,7 @@
         var width = this.width === 'auto' ? this.el.offsetWidth : this.width;
         var active = this.activeIndex;
         this.items.forEach(function(item, i) {
-            item.style.position = 'relative';
-            item.style.top = '0px';
-            item.style.left = (active == i ? 0 : -width) + 'px';
-            item.style.display = active == i ? 'block' : 'none';
-            item.style.webkitTransitionProperty = 'left';
-            item.style.transitionProperty = 'left';
-            item.style.webkitTransitionTimingFunction = 'ease';
-            item.style.transitionTimingFunction = 'ease';
-            item.style.webkitTransitionDuration = '0ms';
-            item.style.transitionDuration = '0ms';
+            item.style.cssText = 'display' + (active == i ? 'block' : 'none') + ';position:;top:0px;left:' + (active == i ? 0 : -width) + 'px;transition:left 0ms;-webkit-transition:left 0ms;';
         });
         this.setWidth(width);
 
@@ -537,5 +528,4 @@
     };
 
     window.Carousel = Carousel;
-    return Carousel;
 }));
