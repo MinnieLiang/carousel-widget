@@ -1,0 +1,15 @@
+{
+    "name": "carousel-widget",
+    "description": "Carousel Widget for Mobile",
+    "version": "0.0.1",
+    "homepage": "https://github.com/maxzhang/carousel-widget",
+    "author": "Max Zhang <zhangdaiping@gmail.com>",
+    "respository": {
+        "type": "git",
+        "url": "https://github.com/maxzhang/carousel-widget.git"
+    },
+    "license": "MIT",
+    "engines": {
+        "node": "*"
+    }
+}
