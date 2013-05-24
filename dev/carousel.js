@@ -336,9 +336,9 @@
             activeEl.style.transitionDuration = duration;
             activeEl.style.display = 'block';
             toEl.style.position = 'absolute';
-            toEl.style.display = 'block';
             toEl.style.webkitTransitionDuration = duration;
             toEl.style.transitionDuration = duration;
+            toEl.style.display = 'block';
 
             setTimeout(function() {
                 if (active == toIndex) {
