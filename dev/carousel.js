@@ -4,17 +4,33 @@
  * 例子参见：http://maxzhang.github.io/carousel-widget/dev/examples/carousel.html
  *
  */
-(function(root, factory) {
-    if (typeof define === "function" && (define.amd || seajs)) {
-        define('carouselwidget', [], function() {
-            factory(root);
-            return root.Carousel;
-        });
-    } else {
-        factory(root);
-    }
-}(window, function(window) {
-    var emtpyFn = function() {},
+(function(window) {
+    var dummyStyle = document.createElement('div').style,
+        vendor = (function () {
+            var vendors = 't,webkitT,MozT,msT,OT'.split(','),
+                t,
+                i = 0,
+                l = vendors.length;
+
+            for ( ; i < l; i++ ) {
+                t = vendors[i] + 'ransform';
+                if ( t in dummyStyle ) {
+                    return vendors[i];
+                }
+            }
+
+            return false;
+        })(),
+        cssVendor = vendor ? '-' + vendor.substr(0, vendor.length - 1).toLowerCase() + '-' : '',
+        transformPropVendor = vendor + 'ransform',
+        transitionPropVendor = vendor + 'ransition',
+        eventVendor = (function() {
+            if (vendor && vendor != 't') {
+                return vendor + 'ransitionEnd';
+            }
+            return 'transitionend';
+        })(),
+        noop = function() {},
         proxy = function(fn, scope) {
             return function() {
                 return fn.apply(scope, arguments);
@@ -34,7 +50,7 @@
         var width = this.width === 'auto' ? this.el.offsetWidth : this.width;
         var active = this.activeIndex;
         this.items.forEach(function(item, i) {
-            item.style.cssText = 'display' + (active == i ? 'block' : 'none') + ';position:;top:0px;left:' + (active == i ? 0 : -width) + 'px;transition:left 0ms;-webkit-transition:left 0ms;';
+            item.style.cssText = 'display' + (active == i ? 'block' : 'none') + ';position:relative;top:0px;' + cssVendor + 'transform:translate3d(' + (active == i ? 0 : -width) + 'px,0px,0px);' + cssVendor + 'transition:' + cssVendor + 'transform 0ms;';
         });
         this.setWidth(width);
 
@@ -131,12 +147,12 @@
         /**
          * 开始切换之前回调函数，返回值为false时，终止本次slide操作
          */
-        beforeSlide: emtpyFn,
+        beforeSlide: noop,
 
         /**
          * 切换完成回调函数
          */
-        onSlide: emtpyFn,
+        onSlide: noop,
 
         /**
          * 设置宽度
@@ -240,9 +256,9 @@
                 if (toIndex >= 0 && toIndex <= last && toIndex != active && this.beforeSlide(toIndex) !== false) {
                     if (!isTouch) {
                         activeEl = this.items[active];
-                        activeEl.style.left = '0px';
+                        activeEl.style[transformPropVendor] = 'translate3d(0px,0px,0px)';
                         toEl = this.items[toIndex];
-                        toEl.style.left = (slideRight ? -activeEl.offsetWidth : activeEl.offsetWidth) + 'px';
+                        toEl.style[transformPropVendor] = 'translate3d(' + (slideRight ? -activeEl.offsetWidth : activeEl.offsetWidth) + 'px,0px,0px)';
                     }
                     this.slide(toIndex, slideRight, silent);
                 } else {
@@ -258,7 +274,10 @@
                 lastActive = active,
                 activeEl = me.items[active],
                 toEl = me.items[toIndex],
-                offsetLeft = activeEl.offsetLeft,
+                translateX = (function() {
+                    var v = window.getComputedStyle(activeEl)[transformPropVendor];
+                    return parseInt(v.split(',')[4].replace(' ', ''));
+                })(),
                 offsetWidth = activeEl.offsetWidth,
                 baseDuration = me.transitionDuration,
                 duration,
@@ -266,22 +285,20 @@
                 activeSlideHandler,
                 toSlideHandler,
                 clearHandler = function(el, fn) {
-                    el.removeEventListener('webkitTransitionEnd', fn, false);
-                    el.removeEventListener('transitionend', fn, false);
+                    el.removeEventListener(eventVendor, fn, false);
                 };
 
             me.sliding = true;
 
             if (active == toIndex) {
                 context = me.getContext();
-                slideRight = offsetLeft < 0;
+                slideRight = translateX < 0;
                 toEl = me.items[slideRight ? context.next : context.prev];
-                duration = silent ? '0ms' : (Math.round((Math.abs(offsetLeft) / offsetWidth) * baseDuration) + 'ms');
+                duration = silent ? '0ms' : (Math.round((Math.abs(translateX) / offsetWidth) * baseDuration) + 'ms');
                 activeSlideHandler = function() {
                     clearHandler(activeEl, activeSlideHandler);
                     activeEl.style.position = 'relative';
-                    activeEl.style.webkitTransitionDuration = '0ms';
-                    activeEl.style.transitionDuration = '0ms';
+                    activeEl.style[transitionPropVendor + 'Duration'] = '0ms';
                 };
                 toSlideHandler = function() {
                     clearTimeout(me.resetSlideTimeout);
@@ -289,8 +306,7 @@
                     clearHandler(toEl, toSlideHandler);
                     toEl.style.display = 'none';
                     toEl.style.position = 'relative';
-                    toEl.style.webkitTransitionDuration = '0ms';
-                    toEl.style.transitionDuration = '0ms';
+                    toEl.style[transitionPropVendor + 'Duration'] = '0ms';
                     if (me.indicators && me.indicatorCls) {
                         me.indicators[lastActive].classList.remove(me.indicatorCls);
                         me.indicators[me.activeIndex].classList.add(me.indicatorCls);
@@ -304,16 +320,14 @@
                     clearHandler(activeEl, activeSlideHandler);
                     activeEl.style.display = 'none';
                     activeEl.style.position = 'relative';
-                    activeEl.style.webkitTransitionDuration = '0ms';
-                    activeEl.style.transitionDuration = '0ms';
+                    activeEl.style[transitionPropVendor + 'Duration'] = '0ms';
                 };
                 toSlideHandler = function() {
                     clearTimeout(me.resetSlideTimeout);
                     delete me.resetSlideTimeout;
                     clearHandler(toEl, toSlideHandler);
                     toEl.style.position = 'relative';
-                    toEl.style.webkitTransitionDuration = '0ms';
-                    toEl.style.transitionDuration = '0ms';
+                    toEl.style[transitionPropVendor + 'Duration'] = '0ms';
                     if (me.indicators && me.indicatorCls) {
                         me.indicators[lastActive].classList.remove(me.indicatorCls);
                         me.indicators[me.activeIndex].classList.add(me.indicatorCls);
@@ -321,32 +335,28 @@
                     me.sliding = false;
                     me.onSlide(me.activeIndex);
                 };
-                duration = silent ? '0ms' : (Math.round((offsetWidth - (Math.abs(offsetLeft))) / offsetWidth * baseDuration) + 'ms');
+                duration = silent ? '0ms' : (Math.round((offsetWidth - (Math.abs(translateX))) / offsetWidth * baseDuration) + 'ms');
             }
 
             clearHandler(activeEl, activeSlideHandler);
             clearHandler(toEl, toSlideHandler);
             if (!silent) {
-                activeEl.addEventListener('webkitTransitionEnd', activeSlideHandler, false);
-                activeEl.addEventListener('transitionend', activeSlideHandler, false);
-                toEl.addEventListener('webkitTransitionEnd', toSlideHandler, false);
-                toEl.addEventListener('transitionend', toSlideHandler, false);
+                activeEl.addEventListener(eventVendor, activeSlideHandler, false);
+                toEl.addEventListener(eventVendor, toSlideHandler, false);
             }
-            activeEl.style.webkitTransitionDuration = duration;
-            activeEl.style.transitionDuration = duration;
+            activeEl.style[transitionPropVendor + 'Duration'] = duration;
             activeEl.style.display = 'block';
             toEl.style.position = 'absolute';
-            toEl.style.webkitTransitionDuration = duration;
-            toEl.style.transitionDuration = duration;
+            toEl.style[transitionPropVendor + 'Duration'] = duration;
             toEl.style.display = 'block';
 
             setTimeout(function() {
                 if (active == toIndex) {
-                    activeEl.style.left = '0px';
-                    toEl.style.left = (slideRight ? offsetWidth : -offsetWidth) + 'px';
+                    activeEl.style[transformPropVendor] = 'translate3d(0px,0px,0px)';
+                    toEl.style[transformPropVendor] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
                 } else {
-                    activeEl.style.left = (slideRight ? offsetWidth : -offsetWidth) + 'px';
-                    toEl.style.left = '0px';
+                    activeEl.style[transformPropVendor] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
+                    toEl.style[transformPropVendor] = 'translate3d(0px,0px,0px)';
                 }
                 if (silent) {
                     activeSlideHandler();
@@ -395,10 +405,9 @@
                 width = activeEl.offsetWidth,
                 setShow = function(el, left, isActive) {
                     el.style.position = isActive ? 'relative' : 'absolute';
-                    el.style.left = left + 'px';
+                    el.style[transformPropVendor] = 'translate3d(' + left + 'px,0px,0px)';
                     el.style.display = 'block';
-                    el.style.webkitTransitionDuration = '0ms';
-                    el.style.transitionDuration = '0ms';
+                    el.style[transitionPropVendor + 'Duration'] = '0ms';
                 };
             setShow(this.items[context.prev], -width);
             setShow(this.items[context.next], width);
@@ -453,9 +462,9 @@
                 width = activeEl.offsetWidth;
 
             if (absX < width) {
-                prevEl.style.left = (-width - offsetX) + 'px';
-                activeEl.style.left = -offsetX + 'px';
-                nextEl.style.left = (width - offsetX) + 'px';
+                prevEl.style[transformPropVendor] = 'translate3d(' + (-width - offsetX) + 'px,0px,0px)';
+                activeEl.style[transformPropVendor] = 'translate3d(' + -offsetX + 'px,0px,0px)';
+                nextEl.style[transformPropVendor] = 'translate3d(' + (width - offsetX) + 'px,0px,0px)';
             }
         },
 
@@ -480,16 +489,15 @@
                 setHide = function(el) {
                     el.style.display = 'none';
                     el.style.position = 'relative';
-                    el.style.left = -width + 'px';
-                    el.style.webkitTransitionDuration = '0ms';
-                    el.style.transitionDuration = '0ms';
+                    el.style[transformPropVendor] = 'translate3d(' + -width + 'px,0px,0px)';
+                    el.style[transitionPropVendor + 'Duration'] = '0ms';
                 };
 
             if (absX != 0) {
                 if (absX > width) {
                     absX = width;
                 }
-                if (absX >= 100 || (e.timeStamp - this.touchCoords.timeStamp < 200)) {
+                if (absX >= 80 || (e.timeStamp - this.touchCoords.timeStamp < 200)) {
                     if (this.touchCoords.startX > this.touchCoords.stopX) {
                         transIndex = context.next;
                     } else {
@@ -527,5 +535,14 @@
         }
     };
 
+    dummyStyle = null;
+
+    if (typeof define === "function" && (define.amd || seajs)) {
+        define('carouselwidget', [], function() {
+            return Carousel;
+        });
+    }
+
     window.Carousel = Carousel;
-}));
+
+})(window);
