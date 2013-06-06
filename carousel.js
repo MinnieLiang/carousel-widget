@@ -23,7 +23,6 @@
         })(),
         cssVendor = vendor ? '-' + vendor.toLowerCase() + '-' : '',
         transform = prefixStyle('transform'),
-        transition = prefixStyle('transition'),
         transitionDuration = prefixStyle('transitionDuration'),
         transitionEndEvent = (function() {
             if (vendor == 'webkit' || vendor === 'O') {
