@@ -15,18 +15,19 @@
             for ( ; i < l; i++ ) {
                 t = vendors[i] + 'ransform';
                 if ( t in dummyStyle ) {
-                    return vendors[i];
+                    return vendors[i].substr(0, vendors[i].length - 1);
                 }
             }
 
             return false;
         })(),
-        cssVendor = vendor ? '-' + vendor.substr(0, vendor.length - 1).toLowerCase() + '-' : '',
-        transformPropVendor = vendor + 'ransform',
-        transitionPropVendor = vendor + 'ransition',
-        eventVendor = (function() {
-            if (vendor && vendor != 't') {
-                return vendor + 'ransitionEnd';
+        cssVendor = vendor ? '-' + vendor.toLowerCase() + '-' : '',
+        transform = prefixStyle('transform'),
+        transition = prefixStyle('transition'),
+        transitionDuration = prefixStyle('transitionDuration'),
+        transitionEndEvent = (function() {
+            if (vendor == 'webkit' || vendor === 'O') {
+                return vendor.toLowerCase() + 'TransitionEnd';
             }
             return 'transitionend';
         })(),
@@ -134,9 +135,9 @@
         interval: 3000,
 
         /**
-         * @cfg {Number} transitionDuration 动画持续时间，单位ms，默认400
+         * @cfg {Number} duration 动画持续时间，单位ms，默认400
          */
-        transitionDuration: 400,
+        duration: 400,
 
         /**
          * @cfg {iScroll} iscroll 关联一个iscroll对象
@@ -256,9 +257,9 @@
                 if (toIndex >= 0 && toIndex <= last && toIndex != active && this.beforeSlide(toIndex) !== false) {
                     if (!isTouch) {
                         activeEl = this.items[active];
-                        activeEl.style[transformPropVendor] = 'translate3d(0px,0px,0px)';
+                        activeEl.style[transform] = 'translate3d(0px,0px,0px)';
                         toEl = this.items[toIndex];
-                        toEl.style[transformPropVendor] = 'translate3d(' + (slideRight ? -activeEl.offsetWidth : activeEl.offsetWidth) + 'px,0px,0px)';
+                        toEl.style[transform] = 'translate3d(' + (slideRight ? -activeEl.offsetWidth : activeEl.offsetWidth) + 'px,0px,0px)';
                     }
                     this.slide(toIndex, slideRight, silent);
                 } else {
@@ -275,17 +276,17 @@
                 activeEl = me.items[active],
                 toEl = me.items[toIndex],
                 translateX = (function() {
-                    var v = window.getComputedStyle(activeEl)[transformPropVendor];
+                    var v = window.getComputedStyle(activeEl)[transform];
                     return parseInt(v.split(',')[4].replace(' ', ''));
                 })(),
                 offsetWidth = activeEl.offsetWidth,
-                baseDuration = me.transitionDuration,
+                baseDuration = me.duration,
                 duration,
                 context,
                 activeSlideHandler,
                 toSlideHandler,
                 clearHandler = function(el, fn) {
-                    el.removeEventListener(eventVendor, fn, false);
+                    el.removeEventListener(transitionEndEvent, fn, false);
                 };
 
             me.sliding = true;
@@ -298,7 +299,7 @@
                 activeSlideHandler = function() {
                     clearHandler(activeEl, activeSlideHandler);
                     activeEl.style.position = 'relative';
-                    activeEl.style[transitionPropVendor + 'Duration'] = '0ms';
+                    activeEl.style[transitionDuration] = '0ms';
                 };
                 toSlideHandler = function() {
                     clearTimeout(me.resetSlideTimeout);
@@ -306,7 +307,7 @@
                     clearHandler(toEl, toSlideHandler);
                     toEl.style.display = 'none';
                     toEl.style.position = 'relative';
-                    toEl.style[transitionPropVendor + 'Duration'] = '0ms';
+                    toEl.style[transitionDuration] = '0ms';
                     if (me.indicators && me.indicatorCls) {
                         me.indicators[lastActive].classList.remove(me.indicatorCls);
                         me.indicators[me.activeIndex].classList.add(me.indicatorCls);
@@ -320,14 +321,14 @@
                     clearHandler(activeEl, activeSlideHandler);
                     activeEl.style.display = 'none';
                     activeEl.style.position = 'relative';
-                    activeEl.style[transitionPropVendor + 'Duration'] = '0ms';
+                    activeEl.style[transitionDuration] = '0ms';
                 };
                 toSlideHandler = function() {
                     clearTimeout(me.resetSlideTimeout);
                     delete me.resetSlideTimeout;
                     clearHandler(toEl, toSlideHandler);
                     toEl.style.position = 'relative';
-                    toEl.style[transitionPropVendor + 'Duration'] = '0ms';
+                    toEl.style[transitionDuration] = '0ms';
                     if (me.indicators && me.indicatorCls) {
                         me.indicators[lastActive].classList.remove(me.indicatorCls);
                         me.indicators[me.activeIndex].classList.add(me.indicatorCls);
@@ -341,22 +342,22 @@
             clearHandler(activeEl, activeSlideHandler);
             clearHandler(toEl, toSlideHandler);
             if (!silent) {
-                activeEl.addEventListener(eventVendor, activeSlideHandler, false);
-                toEl.addEventListener(eventVendor, toSlideHandler, false);
+                activeEl.addEventListener(transitionEndEvent, activeSlideHandler, false);
+                toEl.addEventListener(transitionEndEvent, toSlideHandler, false);
             }
-            activeEl.style[transitionPropVendor + 'Duration'] = duration;
+            activeEl.style[transitionDuration] = duration;
             activeEl.style.display = 'block';
             toEl.style.position = 'absolute';
-            toEl.style[transitionPropVendor + 'Duration'] = duration;
+            toEl.style[transitionDuration] = duration;
             toEl.style.display = 'block';
 
             setTimeout(function() {
                 if (active == toIndex) {
-                    activeEl.style[transformPropVendor] = 'translate3d(0px,0px,0px)';
-                    toEl.style[transformPropVendor] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
+                    activeEl.style[transform] = 'translate3d(0px,0px,0px)';
+                    toEl.style[transform] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
                 } else {
-                    activeEl.style[transformPropVendor] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
-                    toEl.style[transformPropVendor] = 'translate3d(0px,0px,0px)';
+                    activeEl.style[transform] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
+                    toEl.style[transform] = 'translate3d(0px,0px,0px)';
                 }
                 if (silent) {
                     activeSlideHandler();
@@ -405,9 +406,9 @@
                 width = activeEl.offsetWidth,
                 setShow = function(el, left, isActive) {
                     el.style.position = isActive ? 'relative' : 'absolute';
-                    el.style[transformPropVendor] = 'translate3d(' + left + 'px,0px,0px)';
+                    el.style[transform] = 'translate3d(' + left + 'px,0px,0px)';
                     el.style.display = 'block';
-                    el.style[transitionPropVendor + 'Duration'] = '0ms';
+                    el.style[transitionDuration] = '0ms';
                 };
             setShow(this.items[context.prev], -width);
             setShow(this.items[context.next], width);
@@ -462,9 +463,9 @@
                 width = activeEl.offsetWidth;
 
             if (absX < width) {
-                prevEl.style[transformPropVendor] = 'translate3d(' + (-width - offsetX) + 'px,0px,0px)';
-                activeEl.style[transformPropVendor] = 'translate3d(' + -offsetX + 'px,0px,0px)';
-                nextEl.style[transformPropVendor] = 'translate3d(' + (width - offsetX) + 'px,0px,0px)';
+                prevEl.style[transform] = 'translate3d(' + (-width - offsetX) + 'px,0px,0px)';
+                activeEl.style[transform] = 'translate3d(' + -offsetX + 'px,0px,0px)';
+                nextEl.style[transform] = 'translate3d(' + (width - offsetX) + 'px,0px,0px)';
             }
         },
 
@@ -489,8 +490,8 @@
                 setHide = function(el) {
                     el.style.display = 'none';
                     el.style.position = 'relative';
-                    el.style[transformPropVendor] = 'translate3d(' + -width + 'px,0px,0px)';
-                    el.style[transitionPropVendor + 'Duration'] = '0ms';
+                    el.style[transform] = 'translate3d(' + -width + 'px,0px,0px)';
+                    el.style[transitionDuration] = '0ms';
                 };
 
             if (absX != 0) {
@@ -534,6 +535,12 @@
             this.iscroll = null;
         }
     };
+
+    function prefixStyle(style) {
+        if ( vendor === '' ) return style;
+        style = style.charAt(0).toUpperCase() + style.substr(1);
+        return vendor + style;
+    }
 
     dummyStyle = null;
 
