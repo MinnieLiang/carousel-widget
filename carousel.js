@@ -74,7 +74,7 @@
             this[o] = config[o];
         }
 
-        this.el = document.querySelector(this.targetSelector);
+        this.el = typeof this.targetSelector === 'string' ? document.querySelector(this.targetSelector) : this.targetSelector;
         if (pointerEnabled) this.el.style.msTouchAction = 'pan-y';
 
         this.items = this.itemSelector ? this.el.querySelectorAll(this.itemSelector): this.el.children;
