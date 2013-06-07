@@ -5,7 +5,8 @@
  *
  */
 (function(window) {
-    var dummyStyle = document.createElement('div').style,
+    var pointerEnabled = window.navigator.msPointerEnabled,
+        dummyStyle = document.createElement('div').style,
         vendor = (function () {
             var vendors = 't,webkitT,MozT,msT,OT'.split(','),
                 t,
@@ -35,6 +36,34 @@
             return function() {
                 return fn.apply(scope, arguments);
             };
+        },
+        addClass = function(elem, value) {
+            var classes, cur, clazz, i;
+            classes = (value || '').match(/\S+/g) || [];
+            cur = elem.nodeType === 1 && ( elem.className ? (' ' + elem.className + ' ').replace(/[\t\r\n]/g, ' ') : ' ');
+            if (cur) {
+                i = 0;
+                while ((clazz = classes[i++])) {
+                    if (cur.indexOf(' ' + clazz + ' ') < 0) {
+                        cur += clazz + ' ';
+                    }
+                }
+                elem.className = cur.trim();
+            }
+        },
+        removeClass = function(elem, value) {
+            var classes, cur, clazz, i;
+            classes = (value || '').match(/\S+/g) || [];
+            cur = elem.nodeType === 1 && ( elem.className ? (' ' + elem.className + ' ').replace(/[\t\r\n]/g, ' ') : ' ');
+            if (cur) {
+                i = 0;
+                while ((clazz = classes[i++])) {
+                    while (cur.indexOf(' ' + clazz + ' ') >= 0) {
+                        cur = cur.replace(' ' + clazz + ' ', ' ');
+                    }
+                }
+                elem.className = cur.trim();
+            }
         };
 
     var Carousel = function(config) {
@@ -44,6 +73,8 @@
         }
 
         this.el = document.querySelector(this.targetSelector);
+        if (pointerEnabled) this.el.style.msTouchAction = 'pan-y';
+
         this.items = this.itemSelector ? this.el.querySelectorAll(this.itemSelector): this.el.children;
         this.items = Array.prototype.slice.call(this.items, 0);
 
@@ -76,7 +107,11 @@
         this.onTouchStartProxy = proxy(this.onTouchStart, this);
         this.onTouchMoveProxy = proxy(this.onTouchMove, this);
         this.onTouchEndProxy = proxy(this.onTouchEnd, this);
-        this.el.addEventListener('touchstart', this.onTouchStartProxy, false);
+        if (pointerEnabled) {
+            this.el.addEventListener('MSPointerDown', this.onTouchStartProxy, false);
+        } else {
+            this.el.addEventListener('touchstart', this.onTouchStartProxy, false);
+        }
 
         var activeEl = this.items[this.activeIndex];
         activeEl.style.display = 'block';
@@ -275,8 +310,15 @@
                 activeEl = me.items[active],
                 toEl = me.items[toIndex],
                 translateX = (function() {
-                    var v = window.getComputedStyle(activeEl)[transform];
-                    return parseInt(v.split(',')[4].replace(' ', ''));
+                    var v = window.getComputedStyle(activeEl)[transform],
+                        is3d;
+                    if (v) {
+                        is3d = /matrix3d/.test(v);
+                        v = v.match(is3d ? /matrix3d(.*)/ : /matrix(.*)/);
+                        v = v[1].replace(/ /g, '').split(',')[is3d ? 12 : 4];
+                        return parseInt(v);
+                    }
+                    return 0;
                 })(),
                 offsetWidth = activeEl.offsetWidth,
                 baseDuration = me.duration,
@@ -308,8 +350,8 @@
                     toEl.style.position = 'relative';
                     toEl.style[transitionDuration] = '0ms';
                     if (me.indicators && me.indicatorCls) {
-                        me.indicators[lastActive].classList.remove(me.indicatorCls);
-                        me.indicators[me.activeIndex].classList.add(me.indicatorCls);
+                        removeClass(me.indicators[lastActive], me.indicatorCls);
+                        addClass(me.indicators[me.activeIndex], me.indicatorCls);
                     }
                     me.sliding = false;
                     me.onSlide(me.activeIndex);
@@ -329,8 +371,8 @@
                     toEl.style.position = 'relative';
                     toEl.style[transitionDuration] = '0ms';
                     if (me.indicators && me.indicatorCls) {
-                        me.indicators[lastActive].classList.remove(me.indicatorCls);
-                        me.indicators[me.activeIndex].classList.add(me.indicatorCls);
+                        removeClass(me.indicators[lastActive], me.indicatorCls);
+                        addClass(me.indicators[me.activeIndex], me.indicatorCls);
                     }
                     me.sliding = false;
                     me.onSlide(me.activeIndex);
@@ -394,13 +436,24 @@
             }
 
             this.clear();
-            this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
-            this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
-            this.el.addEventListener('touchmove', this.onTouchMoveProxy, false);
-            this.el.addEventListener('touchend', this.onTouchEndProxy, false);
+
+            if (pointerEnabled) {
+                this.el.removeEventListener('MSPointerMove', this.onTouchMoveProxy, false);
+                this.el.removeEventListener('MSPointerUp', this.onTouchEndProxy, false);
+                this.el.addEventListener('MSPointerMove', this.onTouchMoveProxy, false);
+                this.el.addEventListener('MSPointerUp', this.onTouchEndProxy, false);
+            } else {
+                this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
+                this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
+                this.el.addEventListener('touchmove', this.onTouchMoveProxy, false);
+                this.el.addEventListener('touchend', this.onTouchEndProxy, false);
+            }
+
             delete this.horizontal;
 
-            var context = this.getContext(),
+            var pageX = pointerEnabled ? e.pageX : e.touches[0].pageX,
+                pageY = pointerEnabled ? e.pageY : e.touches[0].pageY,
+                context = this.getContext(),
                 activeEl = this.items[context.active],
                 width = activeEl.offsetWidth,
                 setShow = function(el, left, isActive) {
@@ -409,13 +462,14 @@
                     el.style.display = 'block';
                     el.style[transitionDuration] = '0ms';
                 };
+
             setShow(this.items[context.prev], -width);
             setShow(this.items[context.next], width);
             setShow(activeEl, 0, true);
 
             this.touchCoords = {};
-            this.touchCoords.startX = e.touches[0].pageX;
-            this.touchCoords.startY = e.touches[0].pageY;
+            this.touchCoords.startX = pageX;
+            this.touchCoords.startY = pageY;
             this.touchCoords.timeStamp = e.timeStamp;
         },
 
@@ -425,8 +479,8 @@
                 return;
             }
 
-            this.touchCoords.stopX = e.touches[0].pageX;
-            this.touchCoords.stopY = e.touches[0].pageY;
+            this.touchCoords.stopX = pointerEnabled ? e.pageX : e.touches[0].pageX;
+            this.touchCoords.stopY = pointerEnabled ? e.pageY : e.touches[0].pageY;
 
             var offsetX = this.touchCoords.startX - this.touchCoords.stopX,
                 absX = Math.abs(offsetX),
@@ -470,8 +524,13 @@
 
         // private
         onTouchEnd: function(e) {
-            this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
-            this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
+            if (pointerEnabled) {
+                this.el.removeEventListener('MSPointerMove', this.onTouchMoveProxy, false);
+                this.el.removeEventListener('MSPointerUp', this.onTouchEndProxy, false);
+            } else {
+                this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
+                this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
+            }
             this.iscroll && this.iscroll.enable();
             this.autoPlay && this.run();
 
@@ -527,9 +586,15 @@
                 this.nextEl = null;
             }
             this.indicators = null;
-            this.el.removeEventListener('touchstart', this.onTouchStartProxy, false);
-            this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
-            this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
+            if (pointerEnabled) {
+                this.el.removeEventListener('MSPointerDown', this.onTouchStartProxy, false);
+                this.el.removeEventListener('MSPointerMove', this.onTouchMoveProxy, false);
+                this.el.removeEventListener('MSPointerUp', this.onTouchEndProxy, false);
+            } else {
+                this.el.removeEventListener('touchstart', this.onTouchStartProxy, false);
+                this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
+                this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
+            }
             this.el = this.items = null;
             this.iscroll = null;
         }
