@@ -5,7 +5,8 @@
  *
  */
 (function(window) {
-    var dummyStyle = document.createElement('div').style,
+    var pointerEnabled = window.navigator.msPointerEnabled,
+        dummyStyle = document.createElement('div').style,
         vendor = (function () {
             var vendors = 't,webkitT,MozT,msT,OT'.split(','),
                 t,
@@ -15,18 +16,18 @@
             for ( ; i < l; i++ ) {
                 t = vendors[i] + 'ransform';
                 if ( t in dummyStyle ) {
-                    return vendors[i];
+                    return vendors[i].substr(0, vendors[i].length - 1);
                 }
             }
 
             return false;
         })(),
-        cssVendor = vendor ? '-' + vendor.substr(0, vendor.length - 1).toLowerCase() + '-' : '',
-        transformPropVendor = vendor + 'ransform',
-        transitionPropVendor = vendor + 'ransition',
-        eventVendor = (function() {
-            if (vendor && vendor != 't') {
-                return vendor + 'ransitionEnd';
+        cssVendor = vendor ? '-' + vendor.toLowerCase() + '-' : '',
+        transform = prefixStyle('transform'),
+        transitionDuration = prefixStyle('transitionDuration'),
+        transitionEndEvent = (function() {
+            if (vendor == 'webkit' || vendor === 'O') {
+                return vendor.toLowerCase() + 'TransitionEnd';
             }
             return 'transitionend';
         })(),
@@ -35,6 +36,34 @@
             return function() {
                 return fn.apply(scope, arguments);
             };
+        },
+        addClass = function(elem, value) {
+            var classes, cur, clazz, i;
+            classes = (value || '').match(/\S+/g) || [];
+            cur = elem.nodeType === 1 && ( elem.className ? (' ' + elem.className + ' ').replace(/[\t\r\n]/g, ' ') : ' ');
+            if (cur) {
+                i = 0;
+                while ((clazz = classes[i++])) {
+                    if (cur.indexOf(' ' + clazz + ' ') < 0) {
+                        cur += clazz + ' ';
+                    }
+                }
+                elem.className = cur.trim();
+            }
+        },
+        removeClass = function(elem, value) {
+            var classes, cur, clazz, i;
+            classes = (value || '').match(/\S+/g) || [];
+            cur = elem.nodeType === 1 && ( elem.className ? (' ' + elem.className + ' ').replace(/[\t\r\n]/g, ' ') : ' ');
+            if (cur) {
+                i = 0;
+                while ((clazz = classes[i++])) {
+                    while (cur.indexOf(' ' + clazz + ' ') >= 0) {
+                        cur = cur.replace(' ' + clazz + ' ', ' ');
+                    }
+                }
+                elem.className = cur.trim();
+            }
         };
 
     var Carousel = function(config) {
@@ -44,6 +73,8 @@
         }
 
         this.el = document.querySelector(this.targetSelector);
+        if (pointerEnabled) this.el.style.msTouchAction = 'pan-y';
+
         this.items = this.itemSelector ? this.el.querySelectorAll(this.itemSelector): this.el.children;
         this.items = Array.prototype.slice.call(this.items, 0);
 
@@ -76,7 +107,11 @@
         this.onTouchStartProxy = proxy(this.onTouchStart, this);
         this.onTouchMoveProxy = proxy(this.onTouchMove, this);
         this.onTouchEndProxy = proxy(this.onTouchEnd, this);
-        this.el.addEventListener('touchstart', this.onTouchStartProxy, false);
+        if (pointerEnabled) {
+            this.el.addEventListener('MSPointerDown', this.onTouchStartProxy, false);
+        } else {
+            this.el.addEventListener('touchstart', this.onTouchStartProxy, false);
+        }
 
         var activeEl = this.items[this.activeIndex];
         activeEl.style.display = 'block';
@@ -134,9 +169,9 @@
         interval: 3000,
 
         /**
-         * @cfg {Number} transitionDuration 动画持续时间，单位ms，默认400
+         * @cfg {Number} duration 动画持续时间，单位ms，默认400
          */
-        transitionDuration: 400,
+        duration: 400,
 
         /**
          * @cfg {iScroll} iscroll 关联一个iscroll对象
@@ -256,9 +291,9 @@
                 if (toIndex >= 0 && toIndex <= last && toIndex != active && this.beforeSlide(toIndex) !== false) {
                     if (!isTouch) {
                         activeEl = this.items[active];
-                        activeEl.style[transformPropVendor] = 'translate3d(0px,0px,0px)';
+                        activeEl.style[transform] = 'translate3d(0px,0px,0px)';
                         toEl = this.items[toIndex];
-                        toEl.style[transformPropVendor] = 'translate3d(' + (slideRight ? -activeEl.offsetWidth : activeEl.offsetWidth) + 'px,0px,0px)';
+                        toEl.style[transform] = 'translate3d(' + (slideRight ? -activeEl.offsetWidth : activeEl.offsetWidth) + 'px,0px,0px)';
                     }
                     this.slide(toIndex, slideRight, silent);
                 } else {
@@ -275,17 +310,24 @@
                 activeEl = me.items[active],
                 toEl = me.items[toIndex],
                 translateX = (function() {
-                    var v = window.getComputedStyle(activeEl)[transformPropVendor];
-                    return parseInt(v.split(',')[4].replace(' ', ''));
+                    var v = window.getComputedStyle(activeEl)[transform],
+                        is3d;
+                    if (v) {
+                        is3d = /matrix3d/.test(v);
+                        v = v.match(is3d ? /matrix3d(.*)/ : /matrix(.*)/);
+                        v = v[1].replace(/ /g, '').split(',')[is3d ? 12 : 4];
+                        return parseInt(v);
+                    }
+                    return 0;
                 })(),
                 offsetWidth = activeEl.offsetWidth,
-                baseDuration = me.transitionDuration,
+                baseDuration = me.duration,
                 duration,
                 context,
                 activeSlideHandler,
                 toSlideHandler,
                 clearHandler = function(el, fn) {
-                    el.removeEventListener(eventVendor, fn, false);
+                    el.removeEventListener(transitionEndEvent, fn, false);
                 };
 
             me.sliding = true;
@@ -298,7 +340,7 @@
                 activeSlideHandler = function() {
                     clearHandler(activeEl, activeSlideHandler);
                     activeEl.style.position = 'relative';
-                    activeEl.style[transitionPropVendor + 'Duration'] = '0ms';
+                    activeEl.style[transitionDuration] = '0ms';
                 };
                 toSlideHandler = function() {
                     clearTimeout(me.resetSlideTimeout);
@@ -306,10 +348,10 @@
                     clearHandler(toEl, toSlideHandler);
                     toEl.style.display = 'none';
                     toEl.style.position = 'relative';
-                    toEl.style[transitionPropVendor + 'Duration'] = '0ms';
+                    toEl.style[transitionDuration] = '0ms';
                     if (me.indicators && me.indicatorCls) {
-                        me.indicators[lastActive].classList.remove(me.indicatorCls);
-                        me.indicators[me.activeIndex].classList.add(me.indicatorCls);
+                        removeClass(me.indicators[lastActive], me.indicatorCls);
+                        addClass(me.indicators[me.activeIndex], me.indicatorCls);
                     }
                     me.sliding = false;
                     me.onSlide(me.activeIndex);
@@ -320,17 +362,17 @@
                     clearHandler(activeEl, activeSlideHandler);
                     activeEl.style.display = 'none';
                     activeEl.style.position = 'relative';
-                    activeEl.style[transitionPropVendor + 'Duration'] = '0ms';
+                    activeEl.style[transitionDuration] = '0ms';
                 };
                 toSlideHandler = function() {
                     clearTimeout(me.resetSlideTimeout);
                     delete me.resetSlideTimeout;
                     clearHandler(toEl, toSlideHandler);
                     toEl.style.position = 'relative';
-                    toEl.style[transitionPropVendor + 'Duration'] = '0ms';
+                    toEl.style[transitionDuration] = '0ms';
                     if (me.indicators && me.indicatorCls) {
-                        me.indicators[lastActive].classList.remove(me.indicatorCls);
-                        me.indicators[me.activeIndex].classList.add(me.indicatorCls);
+                        removeClass(me.indicators[lastActive], me.indicatorCls);
+                        addClass(me.indicators[me.activeIndex], me.indicatorCls);
                     }
                     me.sliding = false;
                     me.onSlide(me.activeIndex);
@@ -341,22 +383,22 @@
             clearHandler(activeEl, activeSlideHandler);
             clearHandler(toEl, toSlideHandler);
             if (!silent) {
-                activeEl.addEventListener(eventVendor, activeSlideHandler, false);
-                toEl.addEventListener(eventVendor, toSlideHandler, false);
+                activeEl.addEventListener(transitionEndEvent, activeSlideHandler, false);
+                toEl.addEventListener(transitionEndEvent, toSlideHandler, false);
             }
-            activeEl.style[transitionPropVendor + 'Duration'] = duration;
+            activeEl.style[transitionDuration] = duration;
             activeEl.style.display = 'block';
             toEl.style.position = 'absolute';
-            toEl.style[transitionPropVendor + 'Duration'] = duration;
+            toEl.style[transitionDuration] = duration;
             toEl.style.display = 'block';
 
             setTimeout(function() {
                 if (active == toIndex) {
-                    activeEl.style[transformPropVendor] = 'translate3d(0px,0px,0px)';
-                    toEl.style[transformPropVendor] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
+                    activeEl.style[transform] = 'translate3d(0px,0px,0px)';
+                    toEl.style[transform] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
                 } else {
-                    activeEl.style[transformPropVendor] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
-                    toEl.style[transformPropVendor] = 'translate3d(0px,0px,0px)';
+                    activeEl.style[transform] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
+                    toEl.style[transform] = 'translate3d(0px,0px,0px)';
                 }
                 if (silent) {
                     activeSlideHandler();
@@ -394,28 +436,40 @@
             }
 
             this.clear();
-            this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
-            this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
-            this.el.addEventListener('touchmove', this.onTouchMoveProxy, false);
-            this.el.addEventListener('touchend', this.onTouchEndProxy, false);
+
+            if (pointerEnabled) {
+                this.el.removeEventListener('MSPointerMove', this.onTouchMoveProxy, false);
+                this.el.removeEventListener('MSPointerUp', this.onTouchEndProxy, false);
+                this.el.addEventListener('MSPointerMove', this.onTouchMoveProxy, false);
+                this.el.addEventListener('MSPointerUp', this.onTouchEndProxy, false);
+            } else {
+                this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
+                this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
+                this.el.addEventListener('touchmove', this.onTouchMoveProxy, false);
+                this.el.addEventListener('touchend', this.onTouchEndProxy, false);
+            }
+
             delete this.horizontal;
 
-            var context = this.getContext(),
+            var pageX = pointerEnabled ? e.pageX : e.touches[0].pageX,
+                pageY = pointerEnabled ? e.pageY : e.touches[0].pageY,
+                context = this.getContext(),
                 activeEl = this.items[context.active],
                 width = activeEl.offsetWidth,
                 setShow = function(el, left, isActive) {
                     el.style.position = isActive ? 'relative' : 'absolute';
-                    el.style[transformPropVendor] = 'translate3d(' + left + 'px,0px,0px)';
+                    el.style[transform] = 'translate3d(' + left + 'px,0px,0px)';
                     el.style.display = 'block';
-                    el.style[transitionPropVendor + 'Duration'] = '0ms';
+                    el.style[transitionDuration] = '0ms';
                 };
+
             setShow(this.items[context.prev], -width);
             setShow(this.items[context.next], width);
             setShow(activeEl, 0, true);
 
             this.touchCoords = {};
-            this.touchCoords.startX = e.touches[0].pageX;
-            this.touchCoords.startY = e.touches[0].pageY;
+            this.touchCoords.startX = pageX;
+            this.touchCoords.startY = pageY;
             this.touchCoords.timeStamp = e.timeStamp;
         },
 
@@ -425,8 +479,8 @@
                 return;
             }
 
-            this.touchCoords.stopX = e.touches[0].pageX;
-            this.touchCoords.stopY = e.touches[0].pageY;
+            this.touchCoords.stopX = pointerEnabled ? e.pageX : e.touches[0].pageX;
+            this.touchCoords.stopY = pointerEnabled ? e.pageY : e.touches[0].pageY;
 
             var offsetX = this.touchCoords.startX - this.touchCoords.stopX,
                 absX = Math.abs(offsetX),
@@ -462,16 +516,21 @@
                 width = activeEl.offsetWidth;
 
             if (absX < width) {
-                prevEl.style[transformPropVendor] = 'translate3d(' + (-width - offsetX) + 'px,0px,0px)';
-                activeEl.style[transformPropVendor] = 'translate3d(' + -offsetX + 'px,0px,0px)';
-                nextEl.style[transformPropVendor] = 'translate3d(' + (width - offsetX) + 'px,0px,0px)';
+                prevEl.style[transform] = 'translate3d(' + (-width - offsetX) + 'px,0px,0px)';
+                activeEl.style[transform] = 'translate3d(' + -offsetX + 'px,0px,0px)';
+                nextEl.style[transform] = 'translate3d(' + (width - offsetX) + 'px,0px,0px)';
             }
         },
 
         // private
         onTouchEnd: function(e) {
-            this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
-            this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
+            if (pointerEnabled) {
+                this.el.removeEventListener('MSPointerMove', this.onTouchMoveProxy, false);
+                this.el.removeEventListener('MSPointerUp', this.onTouchEndProxy, false);
+            } else {
+                this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
+                this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
+            }
             this.iscroll && this.iscroll.enable();
             this.autoPlay && this.run();
 
@@ -489,8 +548,8 @@
                 setHide = function(el) {
                     el.style.display = 'none';
                     el.style.position = 'relative';
-                    el.style[transformPropVendor] = 'translate3d(' + -width + 'px,0px,0px)';
-                    el.style[transitionPropVendor + 'Duration'] = '0ms';
+                    el.style[transform] = 'translate3d(' + -width + 'px,0px,0px)';
+                    el.style[transitionDuration] = '0ms';
                 };
 
             if (absX != 0) {
@@ -527,13 +586,25 @@
                 this.nextEl = null;
             }
             this.indicators = null;
-            this.el.removeEventListener('touchstart', this.onTouchStartProxy, false);
-            this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
-            this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
+            if (pointerEnabled) {
+                this.el.removeEventListener('MSPointerDown', this.onTouchStartProxy, false);
+                this.el.removeEventListener('MSPointerMove', this.onTouchMoveProxy, false);
+                this.el.removeEventListener('MSPointerUp', this.onTouchEndProxy, false);
+            } else {
+                this.el.removeEventListener('touchstart', this.onTouchStartProxy, false);
+                this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
+                this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
+            }
             this.el = this.items = null;
             this.iscroll = null;
         }
     };
+
+    function prefixStyle(style) {
+        if ( vendor === '' ) return style;
+        style = style.charAt(0).toUpperCase() + style.substr(1);
+        return vendor + style;
+    }
 
     dummyStyle = null;
 
