@@ -5,7 +5,9 @@
  *
  */
 (function(window) {
-    var pointerEnabled = window.navigator.msPointerEnabled,
+    var navigator = window.navigator,
+        pointerEnabled = navigator.msPointerEnabled,
+        isAndroid = /Android\s+[\d.]+/i.test(navigator.userAgent),
         dummyStyle = document.createElement('div').style,
         vendor = (function () {
             var vendors = 't,webkitT,MozT,msT,OT'.split(','),
@@ -410,7 +412,7 @@
                         toSlideHandler();
                     }, 2000);
                 }
-            }, 100);
+            }, isAndroid ? 50 : 0);
         },
 
         // private
@@ -441,6 +443,7 @@
                 this.el.removeEventListener('MSPointerMove', this.onTouchMoveProxy, false);
                 this.el.removeEventListener('MSPointerUp', this.onTouchEndProxy, false);
                 this.el.addEventListener('MSPointerMove', this.onTouchMoveProxy, false);
+                this.el.addEventListener('MSPointerUp', this.onTouchEndProxy, false);
                 this.el.addEventListener('MSPointerUp', this.onTouchEndProxy, false);
             } else {
                 this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
@@ -475,44 +478,58 @@
 
         // private
         onTouchMove: function(e) {
-            if (!this.touchCoords || this.sliding) {
+            var me = this;
+
+            clearTimeout(me.touchMoveTimeout);
+            if (!me.touchCoords) {
+                if (pointerEnabled) {
+                    // IE10 for Windows Phone 8 的 pointerevent， 触发 MSPointerDown 之后，
+                    // 如果触控移动轨迹不符合 -ms-touch-action 规则，则不会触发 MSPointerUp 事件。
+                    me.touchMoveTimeout = setTimeout(function() {
+                        me.iscroll && me.iscroll.enable();
+                        me.autoPlay && me.run();
+                    }, 1000);
+                }
+                return;
+            }
+            if (me.sliding) {
                 return;
             }
 
-            this.touchCoords.stopX = pointerEnabled ? e.pageX : e.touches[0].pageX;
-            this.touchCoords.stopY = pointerEnabled ? e.pageY : e.touches[0].pageY;
+            me.touchCoords.stopX = pointerEnabled ? e.pageX : e.touches[0].pageX;
+            me.touchCoords.stopY = pointerEnabled ? e.pageY : e.touches[0].pageY;
 
-            var offsetX = this.touchCoords.startX - this.touchCoords.stopX,
+            var offsetX = me.touchCoords.startX - me.touchCoords.stopX,
                 absX = Math.abs(offsetX),
-                absY = Math.abs(this.touchCoords.startY - this.touchCoords.stopY);
+                absY = Math.abs(me.touchCoords.startY - me.touchCoords.stopY);
 
-            if (typeof this.horizontal !== 'undefined') {
+            if (typeof me.horizontal !== 'undefined') {
                 if (offsetX != 0) {
                     e.preventDefault();
                 }
-                if (this.iscroll && this.iscroll.enabled) {
-                    this.iscroll.disable();
+                if (me.iscroll && me.iscroll.enabled) {
+                    me.iscroll.disable();
                 }
             } else {
                 if (absX > absY) {
-                    this.horizontal = true;
+                    me.horizontal = true;
                     if (offsetX != 0) {
                         e.preventDefault();
                     }
-                    if (this.iscroll && this.iscroll.enabled) {
-                        this.iscroll.disable();
+                    if (me.iscroll && me.iscroll.enabled) {
+                        me.iscroll.disable();
                     }
                 } else {
-                    delete this.touchCoords;
-                    this.horizontal = false;
+                    delete me.touchCoords;
+                    me.horizontal = false;
                     return;
                 }
             }
 
-            var context = this.getContext(),
-                activeEl = this.items[context.active],
-                prevEl = this.items[context.prev],
-                nextEl = this.items[context.next],
+            var context = me.getContext(),
+                activeEl = me.items[context.active],
+                prevEl = me.items[context.prev],
+                nextEl = me.items[context.next],
                 width = activeEl.offsetWidth;
 
             if (absX < width) {
@@ -531,45 +548,46 @@
                 this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
                 this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
             }
+
+            clearTimeout(this.touchMoveTimeout);
+
+            if (this.touchCoords && !this.sliding) {
+                var context = this.getContext(),
+                    activeEl = this.items[context.active],
+                    prevEl = this.items[context.prev],
+                    nextEl = this.items[context.next],
+                    width = activeEl.offsetWidth,
+                    absX = Math.abs(this.touchCoords.startX - this.touchCoords.stopX),
+                    transIndex,
+                    setHide = function(el) {
+                        el.style.display = 'none';
+                        el.style.position = 'relative';
+                        el.style[transform] = 'translate3d(' + -width + 'px,0px,0px)';
+                        el.style[transitionDuration] = '0ms';
+                    };
+
+                if (!isNaN(absX) && absX != 0) {
+                    if (absX > width) {
+                        absX = width;
+                    }
+                    if (absX >= 80 || (e.timeStamp - this.touchCoords.timeStamp < 200)) {
+                        if (this.touchCoords.startX > this.touchCoords.stopX) {
+                            transIndex = context.next;
+                        } else {
+                            transIndex = context.prev;
+                        }
+                    } else {
+                        transIndex = context.active;
+                    }
+
+                    setHide(this.touchCoords.startX > this.touchCoords.stopX ? prevEl : nextEl);
+                    this.to(transIndex, false, true);
+                    delete this.touchCoords;
+                }
+            }
+
             this.iscroll && this.iscroll.enable();
             this.autoPlay && this.run();
-
-            if (!this.touchCoords || this.sliding) {
-                return;
-            }
-
-            var context = this.getContext(),
-                activeEl = this.items[context.active],
-                prevEl = this.items[context.prev],
-                nextEl = this.items[context.next],
-                width = activeEl.offsetWidth,
-                absX = Math.abs(this.touchCoords.startX - this.touchCoords.stopX),
-                transIndex,
-                setHide = function(el) {
-                    el.style.display = 'none';
-                    el.style.position = 'relative';
-                    el.style[transform] = 'translate3d(' + -width + 'px,0px,0px)';
-                    el.style[transitionDuration] = '0ms';
-                };
-
-            if (absX != 0) {
-                if (absX > width) {
-                    absX = width;
-                }
-                if (absX >= 80 || (e.timeStamp - this.touchCoords.timeStamp < 200)) {
-                    if (this.touchCoords.startX > this.touchCoords.stopX) {
-                        transIndex = context.next;
-                    } else {
-                        transIndex = context.prev;
-                    }
-                } else {
-                    transIndex = context.active;
-                }
-
-                setHide(this.touchCoords.startX > this.touchCoords.stopX ? prevEl : nextEl);
-                this.to(transIndex, false, true);
-                delete this.touchCoords;
-            }
         },
 
         /**
