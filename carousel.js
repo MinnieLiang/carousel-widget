@@ -7,7 +7,7 @@
 (function(window) {
     var navigator = window.navigator,
         pointerEnabled = navigator.msPointerEnabled,
-        isAndroid = /Android\s+[\d.]+/i.test(navigator.userAgent),
+        isAndroid = /Android[\s\/]+[\d.]+/i.test(navigator.userAgent),
         dummyStyle = document.createElement('div').style,
         vendor = (function () {
             var vendors = 't,webkitT,MozT,msT,OT'.split(','),
