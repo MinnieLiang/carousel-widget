@@ -7,7 +7,7 @@
 (function(window) {
     var navigator = window.navigator,
         pointerEnabled = navigator.msPointerEnabled,
-        isAndroid = /Android\s+[\d.]+/i.test(navigator.userAgent),
+        isAndroid = /Android[\s\/]+[\d.]+/i.test(navigator.userAgent),
         dummyStyle = document.createElement('div').style,
         vendor = (function () {
             var vendors = 't,webkitT,MozT,msT,OT'.split(','),
@@ -74,7 +74,7 @@
             this[o] = config[o];
         }
 
-        this.el = document.querySelector(this.targetSelector);
+        this.el = typeof this.targetSelector === 'string' ? document.querySelector(this.targetSelector) : this.targetSelector;
         if (pointerEnabled) this.el.style.msTouchAction = 'pan-y';
 
         this.items = this.itemSelector ? this.el.querySelectorAll(this.itemSelector): this.el.children;
