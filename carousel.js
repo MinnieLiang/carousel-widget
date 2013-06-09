@@ -450,7 +450,6 @@
                 this.el.removeEventListener('MSPointerUp', this.onTouchEndProxy, false);
                 this.el.addEventListener('MSPointerMove', this.onTouchMoveProxy, false);
                 this.el.addEventListener('MSPointerUp', this.onTouchEndProxy, false);
-                this.el.addEventListener('MSPointerUp', this.onTouchEndProxy, false);
             } else {
                 this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
                 this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
