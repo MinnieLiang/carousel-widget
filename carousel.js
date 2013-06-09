@@ -25,6 +25,11 @@
             return false;
         })(),
         cssVendor = vendor ? '-' + vendor.toLowerCase() + '-' : '',
+        prefixStyle = function(style) {
+            if ( vendor === '' ) return style;
+            style = style.charAt(0).toUpperCase() + style.substr(1);
+            return vendor + style;
+        },
         transform = prefixStyle('transform'),
         transitionDuration = prefixStyle('transitionDuration'),
         transitionEndEvent = (function() {
@@ -617,12 +622,6 @@
             this.iscroll = null;
         }
     };
-
-    function prefixStyle(style) {
-        if ( vendor === '' ) return style;
-        style = style.charAt(0).toUpperCase() + style.substr(1);
-        return vendor + style;
-    }
 
     dummyStyle = null;
 
