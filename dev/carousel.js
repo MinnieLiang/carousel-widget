@@ -251,15 +251,15 @@
 
         // private
         clear: function() {
-            clearTimeout(this.loopInterval);
-            this.loopInterval = null;
+            clearTimeout(this.slideTimer);
+            this.slideTimer = null;
         },
 
         // private
         run: function() {
             var me = this;
-            if (!me.loopInterval) {
-                me.loopInterval = setInterval(function() {
+            if (!me.slideTimer) {
+                me.slideTimer = setInterval(function() {
                     me.to(me.getContext().next);
                 }, me.interval);
             }
