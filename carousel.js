@@ -486,18 +486,16 @@
             var me = this;
 
             clearTimeout(me.touchMoveTimeout);
-            if (!me.touchCoords) {
-                if (pointerEnabled) {
-                    // IE10 for Windows Phone 8 的 pointerevent， 触发 MSPointerDown 之后，
-                    // 如果触控移动轨迹不符合 -ms-touch-action 规则，则不会触发 MSPointerUp 事件。
-                    me.touchMoveTimeout = setTimeout(function() {
-                        me.iscroll && me.iscroll.enable();
-                        me.autoPlay && me.run();
-                    }, 1000);
-                }
-                return;
+            if (pointerEnabled) {
+                // IE10 for Windows Phone 8 的 pointerevent， 触发 MSPointerDown 之后，
+                // 如果触控移动轨迹不符合 -ms-touch-action 规则，则不会触发 MSPointerUp 事件。
+                me.touchMoveTimeout = setTimeout(function() {
+                    me.iscroll && me.iscroll.enable();
+                    me.autoPlay && me.run();
+                }, 1000);
             }
-            if (me.sliding) {
+
+            if (!me.touchCoords || me.sliding) {
                 return;
             }
 
@@ -546,6 +544,7 @@
 
         // private
         onTouchEnd: function(e) {
+            clearTimeout(this.touchMoveTimeout);
             if (pointerEnabled) {
                 this.el.removeEventListener('MSPointerMove', this.onTouchMoveProxy, false);
                 this.el.removeEventListener('MSPointerUp', this.onTouchEndProxy, false);
@@ -553,8 +552,6 @@
                 this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
                 this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
             }
-
-            clearTimeout(this.touchMoveTimeout);
 
             if (this.touchCoords && !this.sliding) {
                 var context = this.getContext(),
