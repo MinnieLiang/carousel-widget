@@ -81,6 +81,7 @@
 
         this.el = typeof this.targetSelector === 'string' ? document.querySelector(this.targetSelector) : this.targetSelector;
         if (pointerEnabled) this.el.style.msTouchAction = 'pan-y';
+        this.el.style.position = 'relative';
 
         this.items = this.itemSelector ? this.el.querySelectorAll(this.itemSelector): this.el.children;
         this.items = Array.prototype.slice.call(this.items, 0);
