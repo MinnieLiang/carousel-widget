@@ -71,17 +71,6 @@
                 }
                 elem.className = cur.trim();
             }
-        },
-        outerWidth = function(el) {
-            var style = window.getComputedStyle(el);
-            return el.offsetWidth + parsePx(style.marginLeft) + parsePx(style.marginRight);
-        },
-        outerHeight = function(el) {
-            var style = window.getComputedStyle(el);
-            return el.offsetHeight + parsePx(style.marginTop) + parsePx(style.marginBottom);
-        },
-        parsePx = function(val) {
-            return val ? parseInt(val.replace(/[^\d]/g, '')) : 0;
         };
 
     var Carousel = function(config) {
@@ -312,7 +301,7 @@
                         activeEl = this.items[active];
                         activeEl.style[transform] = 'translate3d(0px,0px,0px)';
                         toEl = this.items[toIndex];
-                        toEl.style[transform] = 'translate3d(' + (slideRight ? -outerWidth(activeEl) : outerWidth(activeEl)) + 'px,0px,0px)';
+                        toEl.style[transform] = 'translate3d(' + (slideRight ? -activeEl.offsetWidth : activeEl.offsetWidth) + 'px,0px,0px)';
                     }
                     this.slide(toIndex, slideRight, silent);
                 } else {
@@ -339,7 +328,7 @@
                     }
                     return 0;
                 })(),
-                offsetWidth = outerWidth(activeEl),
+                offsetWidth = activeEl.offsetWidth,
                 baseDuration = me.duration,
                 duration,
                 context,
@@ -474,7 +463,7 @@
                 pageY = pointerEnabled ? e.pageY : e.touches[0].pageY,
                 context = this.getContext(),
                 activeEl = this.items[context.active],
-                width = outerWidth(activeEl),
+                width = activeEl.offsetWidth,
                 setShow = function(el, left, isActive) {
                     el.style.position = isActive ? 'relative' : 'absolute';
                     el.style[transform] = 'translate3d(' + left + 'px,0px,0px)';
@@ -544,7 +533,7 @@
                 activeEl = me.items[context.active],
                 prevEl = me.items[context.prev],
                 nextEl = me.items[context.next],
-                width = outerWidth(activeEl);
+                width = activeEl.offsetWidth;
 
             if (absX < width) {
                 prevEl.style[transform] = 'translate3d(' + (-width - offsetX) + 'px,0px,0px)';
@@ -569,7 +558,7 @@
                     activeEl = this.items[context.active],
                     prevEl = this.items[context.prev],
                     nextEl = this.items[context.next],
-                    width = outerWidth(activeEl),
+                    width = activeEl.offsetWidth,
                     absX = Math.abs(this.touchCoords.startX - this.touchCoords.stopX),
                     transIndex,
                     setHide = function(el) {
