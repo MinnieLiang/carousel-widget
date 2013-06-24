@@ -492,7 +492,7 @@
                 me.touchMoveTimeout = setTimeout(function() {
                     me.iscroll && me.iscroll.enable();
                     me.autoPlay && me.run();
-                }, 1000);
+                }, 3000);
             }
 
             if (!me.touchCoords || me.sliding) {
