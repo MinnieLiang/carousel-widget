@@ -510,9 +510,6 @@
                 if (offsetX != 0) {
                     e.preventDefault();
                 }
-                if (me.iscroll && me.iscroll.enabled) {
-                    me.iscroll.disable();
-                }
             } else {
                 if (absX > absY) {
                     me.horizontal = true;
