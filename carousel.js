@@ -437,32 +437,40 @@
 
         // private
         onTouchStart: function(e) {
-            if (this.sliding ||
-                this.prevEl && this.prevEl.contains && this.prevEl.contains(e.target) ||
-                this.nextEl && this.nextEl.contains && this.nextEl.contains(e.target)) {
+            var me = this;
+            if (me.sliding ||
+                me.prevEl && me.prevEl.contains && me.prevEl.contains(e.target) ||
+                me.nextEl && me.nextEl.contains && me.nextEl.contains(e.target)) {
                 return;
             }
 
-            this.clear();
-
-            if (pointerEnabled) {
-                this.el.removeEventListener('MSPointerMove', this.onTouchMoveProxy, false);
-                this.el.removeEventListener('MSPointerUp', this.onTouchEndProxy, false);
-                this.el.addEventListener('MSPointerMove', this.onTouchMoveProxy, false);
-                this.el.addEventListener('MSPointerUp', this.onTouchEndProxy, false);
-            } else {
-                this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
-                this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
-                this.el.addEventListener('touchmove', this.onTouchMoveProxy, false);
-                this.el.addEventListener('touchend', this.onTouchEndProxy, false);
+            clearTimeout(me.androidTouchMoveTimeout);
+            me.clear();
+            if (isAndroid) {
+                // 部分andriod机型下，无法触发trouchend事件，导致touch之后轮循播放失败
+                me.androidTouchMoveTimeout = setTimeout(function() {
+                    me.resetStatus();
+                }, 3000);
             }
 
-            delete this.horizontal;
+            if (pointerEnabled) {
+                me.el.removeEventListener('MSPointerMove', me.onTouchMoveProxy, false);
+                me.el.removeEventListener('MSPointerUp', me.onTouchEndProxy, false);
+                me.el.addEventListener('MSPointerMove', me.onTouchMoveProxy, false);
+                me.el.addEventListener('MSPointerUp', me.onTouchEndProxy, false);
+            } else {
+                me.el.removeEventListener('touchmove', me.onTouchMoveProxy, false);
+                me.el.removeEventListener('touchend', me.onTouchEndProxy, false);
+                me.el.addEventListener('touchmove', me.onTouchMoveProxy, false);
+                me.el.addEventListener('touchend', me.onTouchEndProxy, false);
+            }
+
+            delete me.horizontal;
 
             var pageX = pointerEnabled ? e.pageX : e.touches[0].pageX,
                 pageY = pointerEnabled ? e.pageY : e.touches[0].pageY,
-                context = this.getContext(),
-                activeEl = this.items[context.active],
+                context = me.getContext(),
+                activeEl = me.items[context.active],
                 width = activeEl.offsetWidth,
                 setShow = function(el, left, isActive) {
                     el.style.position = isActive ? 'relative' : 'absolute';
@@ -471,14 +479,14 @@
                     el.style[transitionDuration] = '0ms';
                 };
 
-            setShow(this.items[context.prev], -width);
-            setShow(this.items[context.next], width);
+            setShow(me.items[context.prev], -width);
+            setShow(me.items[context.next], width);
             setShow(activeEl, 0, true);
 
-            this.touchCoords = {};
-            this.touchCoords.startX = pageX;
-            this.touchCoords.startY = pageY;
-            this.touchCoords.timeStamp = e.timeStamp;
+            me.touchCoords = {};
+            me.touchCoords.startX = pageX;
+            me.touchCoords.startY = pageY;
+            me.touchCoords.timeStamp = e.timeStamp;
         },
 
         // private
@@ -490,8 +498,7 @@
                 // IE10 for Windows Phone 8 的 pointerevent， 触发 MSPointerDown 之后，
                 // 如果触控移动轨迹不符合 -ms-touch-action 规则，则不会触发 MSPointerUp 事件。
                 me.touchMoveTimeout = setTimeout(function() {
-                    me.iscroll && me.iscroll.enable();
-                    me.autoPlay && me.run();
+                    me.resetStatus();
                 }, 3000);
             }
 
@@ -519,6 +526,7 @@
                     if (me.iscroll && me.iscroll.enabled) {
                         me.iscroll.disable();
                     }
+                    clearTimeout(me.androidTouchMoveTimeout);
                 } else {
                     delete me.touchCoords;
                     me.horizontal = false;
@@ -541,6 +549,7 @@
 
         // private
         onTouchEnd: function(e) {
+            clearTimeout(this.androidTouchMoveTimeout);
             clearTimeout(this.touchMoveTimeout);
             if (pointerEnabled) {
                 this.el.removeEventListener('MSPointerMove', this.onTouchMoveProxy, false);
@@ -585,6 +594,10 @@
                 }
             }
 
+            this.resetStatus();
+        },
+
+        resetStatus: function() {
             this.iscroll && this.iscroll.enable();
             this.autoPlay && this.run();
         },
