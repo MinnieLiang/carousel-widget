@@ -606,6 +606,7 @@
          * 销毁
          */
         destroy: function() {
+            this.destroyed = true;
             this.stop();
             if (this.prevEl) {
                 this.prevEl.removeEventListener('click', this.onPrevClickProxy, false);
