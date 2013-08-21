@@ -330,7 +330,7 @@
                 })(),
                 offsetWidth = activeEl.offsetWidth,
                 baseDuration = me.duration,
-                duration,
+                duration, oms = '0ms',
                 context,
                 activeSlideHandler,
                 toSlideHandler,
@@ -344,11 +344,11 @@
                 context = me.getContext();
                 slideRight = translateX < 0;
                 toEl = me.items[slideRight ? context.next : context.prev];
-                duration = silent ? '0ms' : (Math.round((Math.abs(translateX) / offsetWidth) * baseDuration) + 'ms');
+                duration = silent ? 0 : Math.round((Math.abs(translateX) / offsetWidth) * baseDuration);
                 activeSlideHandler = function() {
                     clearHandler(activeEl, activeSlideHandler);
                     activeEl.style.position = 'relative';
-                    activeEl.style[transitionDuration] = '0ms';
+                    activeEl.style[transitionDuration] = oms;
                 };
                 toSlideHandler = function() {
                     clearTimeout(me.resetSlideTimeout);
@@ -356,7 +356,7 @@
                     clearHandler(toEl, toSlideHandler);
                     toEl.style.display = 'none';
                     toEl.style.position = 'relative';
-                    toEl.style[transitionDuration] = '0ms';
+                    toEl.style[transitionDuration] = oms;
                     if (me.indicators && me.indicatorCls) {
                         removeClass(me.indicators[lastActive], me.indicatorCls);
                         addClass(me.indicators[me.activeIndex], me.indicatorCls);
@@ -370,14 +370,14 @@
                     clearHandler(activeEl, activeSlideHandler);
                     activeEl.style.display = 'none';
                     activeEl.style.position = 'relative';
-                    activeEl.style[transitionDuration] = '0ms';
+                    activeEl.style[transitionDuration] = oms;
                 };
                 toSlideHandler = function() {
                     clearTimeout(me.resetSlideTimeout);
                     delete me.resetSlideTimeout;
                     clearHandler(toEl, toSlideHandler);
                     toEl.style.position = 'relative';
-                    toEl.style[transitionDuration] = '0ms';
+                    toEl.style[transitionDuration] = oms;
                     if (me.indicators && me.indicatorCls) {
                         removeClass(me.indicators[lastActive], me.indicatorCls);
                         addClass(me.indicators[me.activeIndex], me.indicatorCls);
@@ -385,29 +385,25 @@
                     me.sliding = false;
                     me.onSlide(me.activeIndex);
                 };
-                duration = silent ? '0ms' : (Math.round((offsetWidth - (Math.abs(translateX))) / offsetWidth * baseDuration) + 'ms');
+                duration = silent ? 0 : Math.round((offsetWidth - (Math.abs(translateX))) / offsetWidth * baseDuration);
             }
 
             clearHandler(activeEl, activeSlideHandler);
             clearHandler(toEl, toSlideHandler);
-            if (!silent) {
-                activeEl.addEventListener(transitionEndEvent, activeSlideHandler, false);
-                toEl.addEventListener(transitionEndEvent, toSlideHandler, false);
-            }
-            activeEl.style[transitionDuration] = duration;
+            activeEl.style[transitionDuration] = duration + 'ms';
             activeEl.style.display = 'block';
             toEl.style.position = 'absolute';
-            toEl.style[transitionDuration] = duration;
+            toEl.style[transitionDuration] = duration + 'ms';
             toEl.style.display = 'block';
 
             setTimeout(function() {
-                if (active == toIndex) {
-                    activeEl.style[transform] = 'translate3d(0px,0px,0px)';
-                    toEl.style[transform] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
-                } else {
-                    activeEl.style[transform] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
-                    toEl.style[transform] = 'translate3d(0px,0px,0px)';
+                var startTranslate3d = 'translate3d(0px,0px,0px)', endTranslate3d = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
+                if (!silent) {
+                    me.listenTransition(activeEl, duration, activeSlideHandler);
+                    me.listenTransition(toEl, duration, toSlideHandler);
                 }
+                activeEl.style[transform] = active == toIndex ? startTranslate3d : endTranslate3d;
+                toEl.style[transform] = active == toIndex ? endTranslate3d : startTranslate3d;
                 if (silent) {
                     activeSlideHandler();
                     toSlideHandler();
@@ -600,6 +596,23 @@
         resetStatus: function() {
             this.iscroll && this.iscroll.enable();
             this.autoPlay && this.run();
+        },
+
+        // private
+        listenTransition: function(target, duration, callbackFn) {
+            var me = this,
+                clear = function() {
+                    if (target.transitionTimer) clearTimeout(target.transitionTimer);
+                    target.transitionTimer = null;
+                    target.removeEventListener(transitionEndEvent, handler, false);
+                },
+                handler = function() {
+                    clear();
+                    if (callbackFn) callbackFn.call(me);
+                };
+            clear();
+            target.addEventListener(transitionEndEvent, handler, false);
+            target.transitionTimer = setTimeout(handler, duration + 100);
         },
 
         /**
