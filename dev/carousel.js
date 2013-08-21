@@ -330,7 +330,7 @@
                 })(),
                 offsetWidth = activeEl.offsetWidth,
                 baseDuration = me.duration,
-                duration,
+                duration, oms = '0ms',
                 context,
                 activeSlideHandler,
                 toSlideHandler,
@@ -344,11 +344,11 @@
                 context = me.getContext();
                 slideRight = translateX < 0;
                 toEl = me.items[slideRight ? context.next : context.prev];
-                duration = silent ? '0ms' : (Math.round((Math.abs(translateX) / offsetWidth) * baseDuration) + 'ms');
+                duration = silent ? 0 : Math.round((Math.abs(translateX) / offsetWidth) * baseDuration);
                 activeSlideHandler = function() {
                     clearHandler(activeEl, activeSlideHandler);
                     activeEl.style.position = 'relative';
-                    activeEl.style[transitionDuration] = '0ms';
+                    activeEl.style[transitionDuration] = oms;
                 };
                 toSlideHandler = function() {
                     clearTimeout(me.resetSlideTimeout);
@@ -356,7 +356,7 @@
                     clearHandler(toEl, toSlideHandler);
                     toEl.style.display = 'none';
                     toEl.style.position = 'relative';
-                    toEl.style[transitionDuration] = '0ms';
+                    toEl.style[transitionDuration] = oms;
                     if (me.indicators && me.indicatorCls) {
                         removeClass(me.indicators[lastActive], me.indicatorCls);
                         addClass(me.indicators[me.activeIndex], me.indicatorCls);
@@ -370,14 +370,14 @@
                     clearHandler(activeEl, activeSlideHandler);
                     activeEl.style.display = 'none';
                     activeEl.style.position = 'relative';
-                    activeEl.style[transitionDuration] = '0ms';
+                    activeEl.style[transitionDuration] = oms;
                 };
                 toSlideHandler = function() {
                     clearTimeout(me.resetSlideTimeout);
                     delete me.resetSlideTimeout;
                     clearHandler(toEl, toSlideHandler);
                     toEl.style.position = 'relative';
-                    toEl.style[transitionDuration] = '0ms';
+                    toEl.style[transitionDuration] = oms;
                     if (me.indicators && me.indicatorCls) {
                         removeClass(me.indicators[lastActive], me.indicatorCls);
                         addClass(me.indicators[me.activeIndex], me.indicatorCls);
@@ -385,29 +385,25 @@
                     me.sliding = false;
                     me.onSlide(me.activeIndex);
                 };
-                duration = silent ? '0ms' : (Math.round((offsetWidth - (Math.abs(translateX))) / offsetWidth * baseDuration) + 'ms');
+                duration = silent ? 0 : Math.round((offsetWidth - (Math.abs(translateX))) / offsetWidth * baseDuration);
             }
 
             clearHandler(activeEl, activeSlideHandler);
             clearHandler(toEl, toSlideHandler);
-            if (!silent) {
-                activeEl.addEventListener(transitionEndEvent, activeSlideHandler, false);
-                toEl.addEventListener(transitionEndEvent, toSlideHandler, false);
-            }
-            activeEl.style[transitionDuration] = duration;
+            activeEl.style[transitionDuration] = duration + 'ms';
             activeEl.style.display = 'block';
             toEl.style.position = 'absolute';
-            toEl.style[transitionDuration] = duration;
+            toEl.style[transitionDuration] = duration + 'ms';
             toEl.style.display = 'block';
 
             setTimeout(function() {
-                if (active == toIndex) {
-                    activeEl.style[transform] = 'translate3d(0px,0px,0px)';
-                    toEl.style[transform] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
-                } else {
-                    activeEl.style[transform] = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
-                    toEl.style[transform] = 'translate3d(0px,0px,0px)';
+                var startTranslate3d = 'translate3d(0px,0px,0px)', endTranslate3d = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
+                if (!silent) {
+                    me.listenTransition(activeEl, duration, activeSlideHandler);
+                    me.listenTransition(toEl, duration, toSlideHandler);
                 }
+                activeEl.style[transform] = active == toIndex ? startTranslate3d : endTranslate3d;
+                toEl.style[transform] = active == toIndex ? endTranslate3d : startTranslate3d;
                 if (silent) {
                     activeSlideHandler();
                     toSlideHandler();
@@ -437,32 +433,40 @@
 
         // private
         onTouchStart: function(e) {
-            if (this.sliding ||
-                this.prevEl && this.prevEl.contains && this.prevEl.contains(e.target) ||
-                this.nextEl && this.nextEl.contains && this.nextEl.contains(e.target)) {
+            var me = this;
+            if (me.sliding ||
+                me.prevEl && me.prevEl.contains && me.prevEl.contains(e.target) ||
+                me.nextEl && me.nextEl.contains && me.nextEl.contains(e.target)) {
                 return;
             }
 
-            this.clear();
-
-            if (pointerEnabled) {
-                this.el.removeEventListener('MSPointerMove', this.onTouchMoveProxy, false);
-                this.el.removeEventListener('MSPointerUp', this.onTouchEndProxy, false);
-                this.el.addEventListener('MSPointerMove', this.onTouchMoveProxy, false);
-                this.el.addEventListener('MSPointerUp', this.onTouchEndProxy, false);
-            } else {
-                this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
-                this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
-                this.el.addEventListener('touchmove', this.onTouchMoveProxy, false);
-                this.el.addEventListener('touchend', this.onTouchEndProxy, false);
+            clearTimeout(me.androidTouchMoveTimeout);
+            me.clear();
+            if (isAndroid) {
+                // 部分andriod机型下，无法触发trouchend事件，导致touch之后轮循播放失败
+                me.androidTouchMoveTimeout = setTimeout(function() {
+                    me.resetStatus();
+                }, 3000);
             }
 
-            delete this.horizontal;
+            if (pointerEnabled) {
+                me.el.removeEventListener('MSPointerMove', me.onTouchMoveProxy, false);
+                me.el.removeEventListener('MSPointerUp', me.onTouchEndProxy, false);
+                me.el.addEventListener('MSPointerMove', me.onTouchMoveProxy, false);
+                me.el.addEventListener('MSPointerUp', me.onTouchEndProxy, false);
+            } else {
+                me.el.removeEventListener('touchmove', me.onTouchMoveProxy, false);
+                me.el.removeEventListener('touchend', me.onTouchEndProxy, false);
+                me.el.addEventListener('touchmove', me.onTouchMoveProxy, false);
+                me.el.addEventListener('touchend', me.onTouchEndProxy, false);
+            }
+
+            delete me.horizontal;
 
             var pageX = pointerEnabled ? e.pageX : e.touches[0].pageX,
                 pageY = pointerEnabled ? e.pageY : e.touches[0].pageY,
-                context = this.getContext(),
-                activeEl = this.items[context.active],
+                context = me.getContext(),
+                activeEl = me.items[context.active],
                 width = activeEl.offsetWidth,
                 setShow = function(el, left, isActive) {
                     el.style.position = isActive ? 'relative' : 'absolute';
@@ -471,14 +475,14 @@
                     el.style[transitionDuration] = '0ms';
                 };
 
-            setShow(this.items[context.prev], -width);
-            setShow(this.items[context.next], width);
+            setShow(me.items[context.prev], -width);
+            setShow(me.items[context.next], width);
             setShow(activeEl, 0, true);
 
-            this.touchCoords = {};
-            this.touchCoords.startX = pageX;
-            this.touchCoords.startY = pageY;
-            this.touchCoords.timeStamp = e.timeStamp;
+            me.touchCoords = {};
+            me.touchCoords.startX = pageX;
+            me.touchCoords.startY = pageY;
+            me.touchCoords.timeStamp = e.timeStamp;
         },
 
         // private
@@ -490,9 +494,8 @@
                 // IE10 for Windows Phone 8 的 pointerevent， 触发 MSPointerDown 之后，
                 // 如果触控移动轨迹不符合 -ms-touch-action 规则，则不会触发 MSPointerUp 事件。
                 me.touchMoveTimeout = setTimeout(function() {
-                    me.iscroll && me.iscroll.enable();
-                    me.autoPlay && me.run();
-                }, 1000);
+                    me.resetStatus();
+                }, 3000);
             }
 
             if (!me.touchCoords || me.sliding) {
@@ -510,9 +513,6 @@
                 if (offsetX != 0) {
                     e.preventDefault();
                 }
-                if (me.iscroll && me.iscroll.enabled) {
-                    me.iscroll.disable();
-                }
             } else {
                 if (absX > absY) {
                     me.horizontal = true;
@@ -522,6 +522,7 @@
                     if (me.iscroll && me.iscroll.enabled) {
                         me.iscroll.disable();
                     }
+                    clearTimeout(me.androidTouchMoveTimeout);
                 } else {
                     delete me.touchCoords;
                     me.horizontal = false;
@@ -544,6 +545,7 @@
 
         // private
         onTouchEnd: function(e) {
+            clearTimeout(this.androidTouchMoveTimeout);
             clearTimeout(this.touchMoveTimeout);
             if (pointerEnabled) {
                 this.el.removeEventListener('MSPointerMove', this.onTouchMoveProxy, false);
@@ -588,14 +590,36 @@
                 }
             }
 
+            this.resetStatus();
+        },
+
+        resetStatus: function() {
             this.iscroll && this.iscroll.enable();
             this.autoPlay && this.run();
+        },
+
+        // private
+        listenTransition: function(target, duration, callbackFn) {
+            var me = this,
+                clear = function() {
+                    if (target.transitionTimer) clearTimeout(target.transitionTimer);
+                    target.transitionTimer = null;
+                    target.removeEventListener(transitionEndEvent, handler, false);
+                },
+                handler = function() {
+                    clear();
+                    if (callbackFn) callbackFn.call(me);
+                };
+            clear();
+            target.addEventListener(transitionEndEvent, handler, false);
+            target.transitionTimer = setTimeout(handler, duration + 100);
         },
 
         /**
          * 销毁
          */
         destroy: function() {
+            this.destroyed = true;
             this.stop();
             if (this.prevEl) {
                 this.prevEl.removeEventListener('click', this.onPrevClickProxy, false);
