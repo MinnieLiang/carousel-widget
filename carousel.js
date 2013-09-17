@@ -9,15 +9,15 @@
         pointerEnabled = navigator.msPointerEnabled,
         isAndroid = /Android[\s\/]+[\d.]+/i.test(navigator.userAgent),
         dummyStyle = document.createElement('div').style,
-        vendor = (function () {
+        vendor = (function() {
             var vendors = 't,webkitT,MozT,msT,OT'.split(','),
                 t,
                 i = 0,
                 l = vendors.length;
 
-            for ( ; i < l; i++ ) {
+            for (; i < l; i++) {
                 t = vendors[i] + 'ransform';
-                if ( t in dummyStyle ) {
+                if (t in dummyStyle) {
                     return vendors[i].substr(0, vendors[i].length - 1);
                 }
             }
@@ -26,7 +26,7 @@
         })(),
         cssVendor = vendor ? '-' + vendor.toLowerCase() + '-' : '',
         prefixStyle = function(style) {
-            if ( vendor === '' ) return style;
+            if (vendor === '') return style;
             style = style.charAt(0).toUpperCase() + style.substr(1);
             return vendor + style;
         },
@@ -71,6 +71,21 @@
                 }
                 elem.className = cur.trim();
             }
+        },
+        listenTransition = function(target, duration, callbackFn) {
+            var me = this,
+                clear = function() {
+                    if (target.transitionTimer) clearTimeout(target.transitionTimer);
+                    target.transitionTimer = null;
+                    target.removeEventListener(transitionEndEvent, handler, false);
+                },
+                handler = function() {
+                    clear();
+                    if (callbackFn) callbackFn.call(me);
+                };
+            clear();
+            target.addEventListener(transitionEndEvent, handler, false);
+            target.transitionTimer = setTimeout(handler, duration + 100);
         };
 
     var Carousel = function(config) {
@@ -399,8 +414,8 @@
             setTimeout(function() {
                 var startTranslate3d = 'translate3d(0px,0px,0px)', endTranslate3d = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
                 if (!silent) {
-                    me.listenTransition(activeEl, duration, activeSlideHandler);
-                    me.listenTransition(toEl, duration, toSlideHandler);
+                    listenTransition(activeEl, duration, activeSlideHandler);
+                    listenTransition(toEl, duration, toSlideHandler);
                 }
                 activeEl.style[transform] = active == toIndex ? startTranslate3d : endTranslate3d;
                 toEl.style[transform] = active == toIndex ? endTranslate3d : startTranslate3d;
@@ -596,23 +611,6 @@
         resetStatus: function() {
             this.iscroll && this.iscroll.enable();
             this.autoPlay && this.run();
-        },
-
-        // private
-        listenTransition: function(target, duration, callbackFn) {
-            var me = this,
-                clear = function() {
-                    if (target.transitionTimer) clearTimeout(target.transitionTimer);
-                    target.transitionTimer = null;
-                    target.removeEventListener(transitionEndEvent, handler, false);
-                },
-                handler = function() {
-                    clear();
-                    if (callbackFn) callbackFn.call(me);
-                };
-            clear();
-            target.addEventListener(transitionEndEvent, handler, false);
-            target.transitionTimer = setTimeout(handler, duration + 100);
         },
 
         /**
