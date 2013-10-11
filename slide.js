@@ -1,13 +1,11 @@
 /**
- * 自动切换组件
  *
- * 例子参见：http://maxzhang.github.io/carousel-widget/dev/examples/carousel.html
+ * 例子参见：http://maxzhang.github.io/carousel-widget/dev/examples/slide.html
  *
  */
 (function(window) {
-    var navigator = window.navigator,
-        pointerEnabled = navigator.msPointerEnabled,
-        isAndroid = /Android[\s\/]+[\d.]+/i.test(navigator.userAgent),
+    var pointerEnabled = window.navigator.msPointerEnabled,
+        isAndroid = /Android/i.test(navigator.userAgent),
         dummyStyle = document.createElement('div').style,
         vendor = (function() {
             var vendors = 't,webkitT,MozT,msT,OT'.split(','),
@@ -88,7 +86,7 @@
             target.transitionTimer = setTimeout(handler, duration + 100);
         };
 
-    var Carousel = function(config) {
+    var Slide = function(config) {
         config = config || {};
         for (var o in config) {
             this[o] = config[o];
@@ -96,17 +94,11 @@
 
         this.el = typeof this.targetSelector === 'string' ? document.querySelector(this.targetSelector) : this.targetSelector;
         if (pointerEnabled) this.el.style.msTouchAction = 'pan-y';
-        this.el.style.position = 'relative';
+        this.el.style.overflow = 'hidden';
 
-        this.items = this.itemSelector ? this.el.querySelectorAll(this.itemSelector): this.el.children;
-        this.items = Array.prototype.slice.call(this.items, 0);
-
-        var width = this.width === 'auto' ? this.el.offsetWidth : this.width;
-        var active = this.activeIndex;
-        this.items.forEach(function(item, i) {
-            item.style.cssText = 'display' + (active == i ? 'block' : 'none') + ';position:relative;top:0px;' + cssVendor + 'transform:translate3d(' + (active == i ? 0 : -width) + 'px,0px,0px);' + cssVendor + 'transition:' + cssVendor + 'transform 0ms;';
-        });
-        this.setWidth(width);
+        this.wrap = this.wrapSelector ? this.el.querySelector(this.wrapSelector): this.el.children[0];
+        this.wrap.style.cssText = cssVendor + 'transform:translate3d(' + (-this.getItemWidth() * this.activeIndex) + 'px,0px,0px);' + cssVendor + 'transition:' + cssVendor + 'transform 0ms;';
+        this.items = Array.prototype.slice.call(this.wrap.children, 0);
 
         if (this.prevSelector) {
             this.prevEl = document.querySelector(this.prevSelector);
@@ -136,8 +128,6 @@
             this.el.addEventListener('touchstart', this.onTouchStartProxy, false);
         }
 
-        var activeEl = this.items[this.activeIndex];
-        activeEl.style.display = 'block';
         this.to(this.activeIndex, true);
 
         this.running = false;
@@ -146,13 +136,13 @@
         }
     };
 
-    Carousel.prototype = {
+    Slide.prototype = {
         /**
          * @cfg {String} targetSelector 目标元素选取器，items 默认为 targetSelector 的子元素，可以设置itemSelector，查找指定items子元素
          */
 
         /**
-         * @cfg {String} itemSelector 子元素选取器
+         * @cfg {String} wrapSelector 子元素容器选取器
          */
 
         /**
@@ -172,11 +162,6 @@
          */
 
         /**
-         * @cfg {Number/String} width 组件宽度，默认'auto'
-         */
-        width: 'auto',
-
-        /**
          * @cfg {Number} activeIndex 初始显示的元素index，默认0
          */
         activeIndex: 0,
@@ -192,9 +177,9 @@
         interval: 3000,
 
         /**
-         * @cfg {Number} duration 动画持续时间，单位ms，默认400
+         * @cfg {Number} duration 动画持续时间，单位ms，默认300
          */
-        duration: 400,
+        duration: 300,
 
         /**
          * @cfg {iScroll} iscroll 关联一个iscroll对象
@@ -212,15 +197,9 @@
          */
         onSlide: noop,
 
-        /**
-         * 设置宽度
-         * @param width
-         */
-        setWidth: function(width) {
-            this.el.style.width = width + 'px';
-            this.items.forEach(function(item) {
-                item.style.width = width + 'px';
-            });
+        // private
+        getItemWidth: function() {
+            return this.wrap.offsetWidth;
         },
 
         // private
@@ -290,146 +269,14 @@
          * 切换到上一个
          */
         prev: function() {
-            this.to(this.getContext().prev);
+            this.to(this.activeIndex - 1);
         },
 
         /**
          * 切换到下一个
          */
         next: function() {
-            this.to(this.getContext().next);
-        },
-
-        /**
-         * 切换到index
-         * @param {Number} toIndex
-         * @param {Boolean} silent 无动画效果
-         */
-        to: function(toIndex, silent, /* private */ isTouch) {
-            var active = this.activeIndex,
-                last = this.getLastIndex(),
-                slideRight = (toIndex < active && active < last) || (toIndex == last - 1 && active == last) || (toIndex == last && active === 0),
-                activeEl, toEl;
-            if (!this.sliding) {
-                if (toIndex >= 0 && toIndex <= last && toIndex != active && this.beforeSlide(toIndex) !== false) {
-                    if (!isTouch) {
-                        activeEl = this.items[active];
-                        activeEl.style[transform] = 'translate3d(0px,0px,0px)';
-                        toEl = this.items[toIndex];
-                        toEl.style[transform] = 'translate3d(' + (slideRight ? -activeEl.offsetWidth : activeEl.offsetWidth) + 'px,0px,0px)';
-                    }
-                    this.slide(toIndex, slideRight, silent);
-                } else {
-                    this.slide(active, false, silent);
-                }
-            }
-        },
-
-        // private
-        slide: function(toIndex, slideRight, silent) {
-            var me = this,
-                active = me.activeIndex,
-                lastActive = active,
-                activeEl = me.items[active],
-                toEl = me.items[toIndex],
-                translateX = (function() {
-                    var v = window.getComputedStyle(activeEl)[transform],
-                        is3d;
-                    if (v) {
-                        is3d = /matrix3d/.test(v);
-                        v = v.match(is3d ? /matrix3d(.*)/ : /matrix(.*)/);
-                        v = v[1].replace(/ /g, '').split(',')[is3d ? 12 : 4];
-                        return parseInt(v, 10);
-                    }
-                    return 0;
-                })(),
-                offsetWidth = activeEl.offsetWidth,
-                baseDuration = me.duration,
-                duration, oms = '0ms',
-                context,
-                activeSlideHandler,
-                toSlideHandler,
-                clearHandler = function(el, fn) {
-                    el.removeEventListener(transitionEndEvent, fn, false);
-                };
-
-            me.sliding = true;
-
-            if (active == toIndex) {
-                context = me.getContext();
-                slideRight = translateX < 0;
-                toEl = me.items[slideRight ? context.next : context.prev];
-                duration = silent ? 0 : Math.round((Math.abs(translateX) / offsetWidth) * baseDuration);
-                activeSlideHandler = function() {
-                    clearHandler(activeEl, activeSlideHandler);
-                    activeEl.style.position = 'relative';
-                    activeEl.style[transitionDuration] = oms;
-                };
-                toSlideHandler = function() {
-                    clearTimeout(me.resetSlideTimeout);
-                    delete me.resetSlideTimeout;
-                    clearHandler(toEl, toSlideHandler);
-                    toEl.style.display = 'none';
-                    toEl.style.position = 'relative';
-                    toEl.style[transitionDuration] = oms;
-                    if (me.indicators && me.indicatorCls) {
-                        removeClass(me.indicators[lastActive], me.indicatorCls);
-                        addClass(me.indicators[me.activeIndex], me.indicatorCls);
-                    }
-                    me.sliding = false;
-                    me.onSlide(me.activeIndex);
-                };
-            } else {
-                me.activeIndex = toIndex;
-                activeSlideHandler = function() {
-                    clearHandler(activeEl, activeSlideHandler);
-                    activeEl.style.display = 'none';
-                    activeEl.style.position = 'relative';
-                    activeEl.style[transitionDuration] = oms;
-                };
-                toSlideHandler = function() {
-                    clearTimeout(me.resetSlideTimeout);
-                    delete me.resetSlideTimeout;
-                    clearHandler(toEl, toSlideHandler);
-                    toEl.style.position = 'relative';
-                    toEl.style[transitionDuration] = oms;
-                    if (me.indicators && me.indicatorCls) {
-                        removeClass(me.indicators[lastActive], me.indicatorCls);
-                        addClass(me.indicators[me.activeIndex], me.indicatorCls);
-                    }
-                    me.sliding = false;
-                    me.onSlide(me.activeIndex);
-                };
-                duration = silent ? 0 : Math.round((offsetWidth - (Math.abs(translateX))) / offsetWidth * baseDuration);
-            }
-
-            clearHandler(activeEl, activeSlideHandler);
-            clearHandler(toEl, toSlideHandler);
-            activeEl.style[transitionDuration] = duration + 'ms';
-            activeEl.style.display = 'block';
-            toEl.style.position = 'absolute';
-            toEl.style[transitionDuration] = duration + 'ms';
-            toEl.style.display = 'block';
-
-            setTimeout(function() {
-                var startTranslate3d = 'translate3d(0px,0px,0px)', endTranslate3d = 'translate3d(' + (slideRight ? offsetWidth : -offsetWidth) + 'px,0px,0px)';
-                if (!silent) {
-                    listenTransition(activeEl, duration, activeSlideHandler);
-                    listenTransition(toEl, duration, toSlideHandler);
-                }
-                activeEl.style[transform] = active == toIndex ? startTranslate3d : endTranslate3d;
-                toEl.style[transform] = active == toIndex ? endTranslate3d : startTranslate3d;
-                if (silent) {
-                    activeSlideHandler();
-                    toSlideHandler();
-                } else {
-                    // 防止touch事件与click事件触发的slide动作冲突，导致sliding状态无法被重置
-                    me.resetSlideTimeout = setTimeout(function() {
-                        activeSlideHandler();
-                        toSlideHandler();
-                    }, 2000);
-                }
-            }, isAndroid ? 50 : 0);
+            this.to(this.activeIndex + 1);
         },
 
         // private
@@ -446,11 +293,47 @@
             if (this.autoPlay) this.run();
         },
 
+        /**
+         * 切换到index
+         * @param {Number} toIndex
+         * @param {Boolean} silent 无动画效果
+         */
+        to: function(toIndex, silent) {
+            var active = this.activeIndex,
+                last = this.getLastIndex();
+            if (toIndex >= 0 && toIndex <= last && toIndex != active && this.beforeSlide(toIndex) !== false) {
+                this.slide(toIndex, silent);
+            } else {
+                this.slide(active, silent);
+            }
+        },
+
+        // private
+        slide: function(toIndex, silent) {
+            var me = this,
+                active = me.activeIndex,
+                lastActive = active,
+                handler = function() {
+                    me.wrap.removeEventListener(transitionEndEvent, handler, false);
+                    me.wrap.style[transitionDuration] = '0ms';
+                    if (me.indicators && me.indicatorCls) {
+                        removeClass(me.indicators[lastActive], me.indicatorCls);
+                        addClass(me.indicators[me.activeIndex], me.indicatorCls);
+                    }
+                    me.onSlide(me.activeIndex);
+                };
+            me.activeIndex = toIndex;
+
+            if (!silent) listenTransition(me.wrap, me.duration, handler);
+            me.wrap.style[transitionDuration] = silent ? '0ms' : me.duration + 'ms';
+            me.wrap.style[transform] = 'translate3d(' + (-me.getItemWidth() * toIndex) + 'px, 0px, 0px)';
+            if (silent) handler();
+        },
+
         // private
         onTouchStart: function(e) {
             var me = this;
-            if (me.sliding ||
-                me.prevEl && me.prevEl.contains && me.prevEl.contains(e.target) ||
+            if (me.prevEl && me.prevEl.contains && me.prevEl.contains(e.target) ||
                 me.nextEl && me.nextEl.contains && me.nextEl.contains(e.target)) {
                 return;
             }
@@ -458,7 +341,6 @@
             clearTimeout(me.androidTouchMoveTimeout);
             me.clear();
             if (isAndroid) {
-                // 部分andriod机型下，无法触发trouchend事件，导致touch之后轮循播放失败
                 me.androidTouchMoveTimeout = setTimeout(function() {
                     me.resetStatus();
                 }, 3000);
@@ -479,20 +361,7 @@
             delete me.horizontal;
 
             var pageX = pointerEnabled ? e.pageX : e.touches[0].pageX,
-                pageY = pointerEnabled ? e.pageY : e.touches[0].pageY,
-                context = me.getContext(),
-                activeEl = me.items[context.active],
-                width = activeEl.offsetWidth,
-                setShow = function(el, left, isActive) {
-                    el.style.position = isActive ? 'relative' : 'absolute';
-                    el.style[transform] = 'translate3d(' + left + 'px,0px,0px)';
-                    el.style.display = 'block';
-                    el.style[transitionDuration] = '0ms';
-                };
-
-            setShow(me.items[context.prev], -width);
-            setShow(me.items[context.next], width);
-            setShow(activeEl, 0, true);
+                pageY = pointerEnabled ? e.pageY : e.touches[0].pageY;
 
             me.touchCoords = {};
             me.touchCoords.startX = pageX;
@@ -512,8 +381,7 @@
                     me.resetStatus();
                 }, 3000);
             }
-
-            if (!me.touchCoords || me.sliding) {
+            if (!me.touchCoords) {
                 return;
             }
 
@@ -545,16 +413,18 @@
                 }
             }
 
-            var context = me.getContext(),
-                activeEl = me.items[context.active],
-                prevEl = me.items[context.prev],
-                nextEl = me.items[context.next],
-                width = activeEl.offsetWidth;
+            var itemWidth = me.getItemWidth(),
+                translateX = me.activeIndex * itemWidth,
+                active = me.activeIndex,
+                last = me.getLastIndex();
 
-            if (absX < width) {
-                prevEl.style[transform] = 'translate3d(' + (-width - offsetX) + 'px,0px,0px)';
-                activeEl.style[transform] = 'translate3d(' + -offsetX + 'px,0px,0px)';
-                nextEl.style[transform] = 'translate3d(' + (width - offsetX) + 'px,0px,0px)';
+            if ((active === 0 && offsetX < 0) || (active == last && offsetX > 0)) {
+                translateX += Math.ceil(offsetX / Math.log(Math.abs(offsetX)));
+            } else {
+                translateX += offsetX;
+            }
+            if (absX < itemWidth) {
+                me.wrap.style[transform] = 'translate3d(' + -translateX + 'px, 0px, 0px)';
             }
         },
 
@@ -570,37 +440,27 @@
                 this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
             }
 
-            if (this.touchCoords && !this.sliding) {
-                var context = this.getContext(),
-                    activeEl = this.items[context.active],
-                    prevEl = this.items[context.prev],
-                    nextEl = this.items[context.next],
-                    width = activeEl.offsetWidth,
+            if (this.touchCoords) {
+                var itemWidth = this.getItemWidth(),
                     absX = Math.abs(this.touchCoords.startX - this.touchCoords.stopX),
-                    transIndex,
-                    setHide = function(el) {
-                        el.style.display = 'none';
-                        el.style.position = 'relative';
-                        el.style[transform] = 'translate3d(' + -width + 'px,0px,0px)';
-                        el.style[transitionDuration] = '0ms';
-                    };
+                    active = this.activeIndex,
+                    transIndex;
 
                 if (!isNaN(absX) && absX !== 0) {
-                    if (absX > width) {
-                        absX = width;
+                    if (absX > itemWidth) {
+                        absX = itemWidth;
                     }
                     if (absX >= 80 || (e.timeStamp - this.touchCoords.timeStamp < 200)) {
                         if (this.touchCoords.startX > this.touchCoords.stopX) {
-                            transIndex = context.next;
+                            transIndex = active + 1;
                         } else {
-                            transIndex = context.prev;
+                            transIndex = active - 1;
                         }
                     } else {
-                        transIndex = context.active;
+                        transIndex = active;
                     }
 
-                    setHide(this.touchCoords.startX > this.touchCoords.stopX ? prevEl : nextEl);
-                    this.to(transIndex, false, true);
+                    this.to(transIndex);
                     delete this.touchCoords;
                 }
             }
@@ -637,7 +497,7 @@
                 this.el.removeEventListener('touchmove', this.onTouchMoveProxy, false);
                 this.el.removeEventListener('touchend', this.onTouchEndProxy, false);
             }
-            this.el = this.items = null;
+            this.el = this.wrap = this.items = null;
             this.iscroll = null;
         }
     };
@@ -645,11 +505,11 @@
     dummyStyle = null;
 
     if (typeof define === "function" && (define.amd || seajs)) {
-        define('carouselwidget', [], function() {
-            return Carousel;
+        define('slidewidget', [], function() {
+            return Slide;
         });
     }
 
-    window.Carousel = Carousel;
+    window.Slide = Slide;
 
 })(window);

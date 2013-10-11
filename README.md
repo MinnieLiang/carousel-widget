@@ -5,7 +5,7 @@ Carousel Widget for Mobile 是一个专为移动设备定制的 Carousel 组件�
 
 ## DEMO
 
-例子参见：http://maxzhang.github.io/carousel-widget/dev/examples/carousel.html
+例子参见：http://maxzhang.github.io/dev/carousel-widget/examples/carousel.html
 
 ## API Documentation
 
