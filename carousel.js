@@ -6,7 +6,7 @@
  */
 (function(window) {
     var navigator = window.navigator,
-        isAndroid = /Android[\s\/]+[\d.]+/i.test(navigator.userAgent),
+        isAndroid = /Android/i.test(navigator.userAgent),
         msPointerEnabled = navigator.msPointerEnabled,
         TOUCH_EVENTS = {
             start: msPointerEnabled ? 'MSPointerDown' : 'touchstart',
