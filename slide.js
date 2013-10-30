@@ -450,8 +450,11 @@
         },
 
         refresh: function() {
+            var last = this.getLastIndex();
             this.items = slice.call(this.wrap.children, 0);
-
+            if (this.activeIndex > last) {
+                this.to(last, true);
+            }
         },
 
         handleEvent: function(e) {
